@@ -66,10 +66,16 @@ may eventually make it to `opaleye` proper, without worrying too much about
 backwards compatibility for now. [PostgreSQL](http://www.postgresql.org/) is the
 only supported SQL backend.
 
+__I invite you to continue reading even if you are not particularly interested
+in the concrete problem of SQL. This article says more about Haskell and
+practical uses of the GHC type system than it says about SQL, and it can serve
+as a gentle introduction to advanced features of GHC.__
+
 For the rest of this article, I will assume familiarity with the basic usage of
-Opaleye, and build on that. Familiarity with `HList`, `TypeFamilies`, `GADTs`
-and `DataKinds` will be useful too. We will cover the topic of preventing _the
-wrong SQL_, but first let us worry about a the simpler topic of boilerplate.
+Opaleye, and build on that. Familiarity with `HList`, `TypeFamilies`, `GADTs`,
+`DataKinds` and `KindSignatures` will be useful too, but not required. We will
+cover the topic of preventing _the wrong SQL_, but first let us worry about a
+the simpler topic of boilerplate.
 
 
 ## Boilerplate prevention and uniform representations
@@ -99,9 +105,11 @@ to reduce the amount of boilerplate we need to write regarding these types,
 hopefully without resorting to the powerful but huge, fragile and uncomfortable
 hammer that `TemplateHaskell` can be.
 
-`opaleye-sot` solves this problem by using a combination of `HList` and type
-families which we will now analyze. For those unfamiliar with with `HList`, in
-its traditional representation using
+`opaleye-sot` solves this problem by using a combination of
+[`HList`](https://hackage.haskell.org/package/HList)
+(Oleg Kiselyov, Ralf Laemmel, Keean Schupke et al.)
+and type families which we will now analyze. For those unfamiliar with with
+`HList`, in its traditional representation using
 [GADTs](https://wiki.haskell.org/Generalised_algebraic_datatype) it looks like
 this:
 
@@ -176,7 +184,7 @@ talk about these types in more detail later, for now we will just see them being
 used together with `HRecord` in different scenarios.
 
 
-## Scenario 1: representation of Haskell values read from the database.
+## Scenario 1: representation of Haskell values read from the database
 
 This is the simplest scenario. Since we are only concerned about reading from
 the database here, we can safely ignore the question of whether `DEFAULT` can be
@@ -241,12 +249,12 @@ data User_HsR2 = User_HsR2
   { _user_HsR2_id             :: Int32
   , _user_HsR2_name           :: Text
   , _user_HsR2_age            :: Maybe Int32
-  , _user_HsR2_favoriteNumber :: Maybe Int32
+  , _user_HsR2_favoriteNumber :: Maybe Int32a SQL row,
   }
 ```
 
 That's right, the order of the two last fields was changed, but of course we
-didn't notice the first time because their types were the same, and neither did
+didn't notice the first time because their types were the same. And neither did
 the type checker. So I ask myself what keeps the result of `SELECT id, name,
 favoriteNumber, age FROM user`, in that order, from being somehow converted into
 any of `User_HsR1` or `User_HsR2` above? And the answer is, of course, nothing.
@@ -261,24 +269,185 @@ teach the type checker how to tell right from wrong and move on, which is not so
 hard if we restrict ourselves to small domains and leverage a type system as
 expressive as GHC's.
 
-In order to prevent this
+In order to solve this, first, we need to precisely identify what we are trying
+to accomplish: We would like to use names to identify the particular columns in
+our Haskell representations for SQL rows, because telling apart the meaning of
+_age_ from the meaning of _favorite number_ is much easier than telling apart
+the meaning of a `Maybe Int32` from the meaning of another `Maybe Int32`.
+Additionally, we want to be sure that every time we say _age_ in our Haskell
+representation we do mean _age_ in the SQL row too, and that we make it very
+hard for this property to be violated accidentally.
 
+Having identified our goal, and having talked previously about the problem, we
+can start working towards a solution. We might categorize the problem here as
+one where there is more than one source of information, that is, where both our
+Haskell representation and the SQL table are trying to inform us the names of
+the fields. But which source do we trust when they differ? Wrong, that is the
+wrong question. The right question to ask ourselves is how to _prevent_ those
+two sources from ever differing. And, as it is usually the case in situations
+like this one, the problem is that we have two sources of information where we
+should have had just one.
 
-Now, if we wanted to make these types friendlier to Opaleye and the many
-scenarios where these types would be used, we would need to make all of
-the fields polymorphic:
+If you have been building software for a while you already know that it is not
+truly possible for data representations existing in different realms to map
+perfectly with one another. That is, as an example in our case, we can't expect
+that a Haskell data type that today maps perfectly to a SQL row will continue
+to do so after any of the two is modified. Nevertheless, if we are careful
+when we design said representations and their usage, we can ensure that our
+software is resilient to future compatible changes, and that incompatible
+changes don't go unnoticed.
 
-```haskell
-data User a b c d = User
-  { _user_id             :: a
-  , _user_name           :: b
-  , _user_favoriteNumber :: d
-  , _user_age            :: e
-  }
+What we will do is define the names of the columns just once _in the type
+system_, and then, every time we need to refer to a particular column—be it for
+selecting it, updating it or for showing its name in some debugging tool—we will
+refer to its type; and only then, maybe, convert said type to a term if at all
+needed. Additionally, we will never refer to columns by their position in a row,
+only by its name.
+
+The names of PostgreSQL tables can be expressed as Haskell values of type
+`String`. In GHC, values of type `String` can have a type-level representation
+as a type of kind
+[`Symbol`](https://hackage.haskell.org/package/base-4.8.1.0/docs/GHC-TypeLits.html#t:Symbol)s,
+which can trivially be converted back to `String`s at runtime—and
+with some caveats, also `String`s can be converted to `Symbol`s, but we are not
+particularly interested in this last conversion today.
+
+If you are unfamiliar with kinds, can think of them as “the types of types”.
+Every type that has a term level representation (e.g., `Int`, `Bool`, `Maybe
+Double`, etc.) has a funnily named kind `*`. Type-level strings don't have a
+term-level representation, so its kind is something else: `Symbol` in this case.
+Conversion between a type-level string and a term-level string is made
+explicitly via `symbolVal`. Here's a GHCi session demonstrating the usage of
+`Symbol` and kinds.
+
+```
+> :set -XDataKinds
+> :set -XKindSignatures
+> import Data.Proxy
+> import GHC.TypeLits
+> :type ("hello" :: (String :: *))
+("hello" :: (String :: *)) :: String
+> :kind ("hello" :: Symbol)
+("hello" :: Symbol) :: Symbol
+> :type (symbolVal (Proxy :: Proxy ("hello" :: Symbol)) :: (String :: *))
+(symbolVal (Proxy :: Proxy ("hello" :: Symbol)) :: (String :: *))
+> symbolVal (Proxy :: Proxy ("hello" :: Symbol)) :: (String :: *)
+"hello"
 ```
 
-And similarly if we didn't care about the name of the columns:
+And now, with this new tool we can modify our `HList` solution from before so
+that not only it mentions the type of the value contained in each particular
+column, but also the name of the column itself, so that if we ever write mistype
+the name of column the type checker will let us now. For this, we will use the
+`Tagged` data type, yet another very simple but very powerful tool for teaching
+our type checker how to tell right from wrong.
 
 ```haskell
-type User a b c d = (a, b, c, d)
+newtype Tagged t a = Tagged a
 ```
+
+Remember, what is mentioned to the left of the `=` exists on the type level and
+can be known statically at compile time, and what is mentioned to its right
+exists on the term level and can be known at runtime. In other words, `t` needs
+not have an accompanying term of type `t`, and there is nothing in the `Tagged`
+constructor that restricts `t` to be some particular type. A type like `t` which
+apparently serves no purpose is called a
+[panthom type](http://www.haskell.org/haskellwiki/Phantom_type), and we have
+seen this kind of type before when we used `Proxy` in the previous example.
+
+```haskell
+data Proxy t = Proxy
+```
+
+Look at that. `Proxy` seems to be even more useless than `Tagged`, it carries no
+information whatsoever at the term-level. But the thing is, `Proxy` is a tool
+for programming at the type-level, not at the term-level, so that is perfectly
+fine. When we used `Proxy` before in our `symbolVal` example, we weren't
+interested in any term-level value. We couldn't possibly have been, because as
+we said before, type-level strings do not exist at the term-level; if they
+existed their kind would have been `*`, but alas, it is `Symbol`. Nevertheless,
+`symbolVal`, a class method that exists at the term-level, needs to somehow
+receive as a term-level argument a type-level string so that it can dispatch to
+the appropriate `KnownSymbol` instance. `Proxy` is simply a sort of bridge that
+connects the type-level with the term-level.
+
+Now that we have learned about `Proxy`, there is not much to say about `Tagged`
+beyond the fact that it is isomorphic to `(Proxy t, a)`. That is, not only it
+carries some type-level value `t`, but also a plain old term-level value `a`.
+With `Tagged` we can write hypothetical functions such as this:
+
+```
+callFrenchPhone :: Tagged France PhoneNumber -> IO CallInformation
+```
+
+Here, the type-checker will ensure that only `PhoneNumbers` tagged with
+`France` can be called using the `callFrenchPhone` function:
+
+```
+> -- This type checks:
+> callFrenchPhone (... :: Tagged France PhoneNumber)
+> -- This doesn't checks:
+> callFrenchPhone (... :: Tagged India PhoneNumber)
+```
+
+It is worth noting that the benefits we get from `Tagged French PhoneNumber` are
+not so different from the benefits we get from introducing a `newtype` like:
+
+```haskell
+newtype FrenchPhoneNumber = FrenchPhoneNumber PhoneNumber
+```
+
+Nevertheless, in general `Tagged t a` is more lightweight than the `newtype`
+solution, and it can be used generically for `t`s that may not be known at
+compile time.
+
+Putting together our new knowledge of `Tagged`, `Symbol` and we learned about
+`HList`, this is what we end up with:
+
+```haskell
+type User_HsR = HList
+  '[ Tagged "id" Int32
+   , Tagged "name" Text
+   , Tagged "favoriteNumber" (Maybe Int32)
+   , Tagged "age" (Maybe Int32)
+   ]
+```
+
+Perfect. Now the type of the Haskell representation for a value in a
+column (e.g., `Text`) will always be accompanied by the name of its column
+(e.g., `"name"`) at the type-level. Just one last detail: The `HList` library we
+are using provides a variant to `HList` named
+[`Record`](https://hackage.haskell.org/package/HList-0.4.1.0/docs/Data-HList-Record.html)
+which has an API specially designed for working with `HList`s whose elements are
+`Tagged` values, just like here. From here on we will use `Record` instead
+of `HList` due to the convenience of this API, but other than that, there is no
+fundamental difference between an `HList` and a `Record`. So, our final
+`User_HsR`, at least for now, is as follows:
+
+
+```haskell
+type User_HsR = Record
+  '[ Tagged "id" Int32
+   , Tagged "name" Text
+   , Tagged "favoriteNumber" (Maybe Int32)
+   , Tagged "age" (Maybe Int32)
+   ]
+```
+
+## The billion dollar mistake
+
+> I call it my billion-dollar mistake. It was the invention of the null reference
+> in 1965. At that time, I was designing the first comprehensive type system for
+> references in an object oriented language (ALGOL W). My goal was to ensure that
+> all use of references should be absolutely safe, with checking performed
+> automatically by the compiler. But I couldn't resist the temptation to put in a
+> null reference, simply because it was so easy to implement. This has led to
+> innumerable errors, vulnerabilities, and system crashes, which have probably
+> caused a billion dollars of pain and damage in the last forty years.
+>
+> Tony Hoare - 2009
+
+Those must have been very expensive dollars, because there is no way the pain
+and damage caused by null pointers over the years could have cost as little as a
+billion dollars. But for the sake of discussion let's keep it that way and move
+on, it sounds catchy anyway.
