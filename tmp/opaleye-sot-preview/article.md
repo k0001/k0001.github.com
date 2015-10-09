@@ -482,10 +482,6 @@ way to manipulate the actual `PGBool` directly. Much like the `t` in `Tagged t
 a`, `PGBool` and similar types exist only at the type-level, they have no
 term-level representation in Haskell at runtime.
 
-In this sense, `Koln PGBool` is
-just like `Column PGBool`: a type-level mechanism
-
-
 What we need, and what `opaleye-sot` offers, is a `Maybe`-like type thing that
 can be used in Opaleye's query language which can't possibly be mixed with a
 non-`Maybe`-like type. Much like how the type-checker keeps us from multiplying
