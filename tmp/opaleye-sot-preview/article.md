@@ -452,8 +452,43 @@ The idea is that if you want to write a specific value to a column you wrap it
 in the `WVal` constructor, otherwise you use the `WDef` constructor and
 `opaleye-sot` will replace that with `DEFAULT` in the generated SQL.
 
-We will co
+With that in place, we can proceed to define our counterpart to `User_HsR`
+containing Haskell values to be inserted to the database in a particular SQL
+row, which we will call `User_HsI`, short for “Haskell, insert”.
 
+```haskell
+type User_HsI = Record
+  '[ Tagged "id" (WDef Int32)
+   , Tagged "name" Text
+   , Tagged "favoriteNumber" (WDef (Maybe Int32))
+   , Tagged "age" (Maybe Int32)
+   ]
+```
+
+You may have noticed that `WDef` is isomorphic to `Maybe`, and that we might as
+well have used `Nothing` to signify that we want to write `DEFAULT` to the
+database, and `Just` otherwise. So, why didn't we do that? Why did we introduce
+a whole new type just for this? We did it because, again, this is a situation
+where by carefully paying attention just once, we can forever profit from
+preventing more of _the wrong SQL_.
+
+Let's pay attention to the `favoriteNumber` column. Not only it can take a
+`DEFAULT` value when being written to, but it can also contain a Haskell
+representation for `NULL` as `Nothing`. If we had used `Maybe` instead of
+`WDef`, then the type of the column—ignoring the `Tagged` wrapper—would have
+been `Maybe (Maybe Int32)`, and there are important problems with that. The
+first one is that it is not obvious what each of the `Maybe`s mean anymore: Was
+it the outer or the inner `Maybe` the one signifying `DEFAULT`? And which one
+signified `NULL`? The answer is not obvious. Moreover, if we had used `Maybe`
+instead of `WDef`, the meaning of the `Maybe`s in the columns `id` and `age`
+would have been completely ambiguous; we couldn't possibly know if a `Nothing`
+value in those columns means `DEFAULT` or `NULL`. But besides all this, not at
+all obvious and much more interesting to us, is the fact that both `Nothing` and
+`Just Nothing` are valid values for the type `Maybe (Maybe Int32)`, which means
+that mistaking one for the other would go completely unnoticed by the type
+checker, quite possibly leading us to _the wrong SQL_. By making the distinction
+between `WDef` and `Maybe` explicit we have taught the type-checker to tell
+right from wrong once again.
 
 ## The billion dollar mistake
 
@@ -471,8 +506,8 @@ We will co
 I think a billion dollars may be an understatement, but for the sake of
 discussion let's keep it that way and move on.
 
-SQL, as most other programming languages out there, is happy to take a `NULL`
-value anywhere an expression of a specific type is expected, effectively
+SQL, as most other programming languages out there, is happy to take `NULL`
+anywhere an expression of a specific type is expected, effectively
 subverting any type-system guarantees—much like `undefined` in Haskell, which
 one does not use, recommend, nor talk about. In SQL, `NULL` is particularly
 noteworthy because we don't always find the world modeled in
