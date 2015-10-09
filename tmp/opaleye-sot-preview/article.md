@@ -445,7 +445,7 @@ in the case of a missing right hand side in a `LEFT JOIN`. For those cases,
 variant of `User_HsR` where each column is wrapped in `Maybe` is acceptable too,
 but often less practical.
 
-## Scenario 3: HsI, Haskell values to be written to the database
+## Scenario 3: HsI, Haskell values to be inserted to the database
 
 In this scenario the types are mostly like those in the previous one, but we
 also want to consider that some columns can take a `DEFAULT` value when being.
@@ -591,15 +591,16 @@ altKoln :: Koln a -> Koln a -> Koln a
 ```
 
 And with these tools we are can now reason in terms of `Maybe`, `Functor`s,
-`Monad`s and `Alternative`s _inside_ the database. The definitions of those
-functions are not important, but you might check the source code if you are
-curious. What is important is to understand the difference between `Kol a` and
-`Koln a`. Whereas `Koln a` explicitly informs us that said `a` might be `NULL`,
-and that we must explicitly deal with that possibility, `Kol a` tells us that
-`a` can't possibly be `NULL`. Or, in another words, `Koln a` is analogous to
-`Maybe a` while `Kol a` is analogous to `Identity a`, and we now that `a` and
-`Identity a` are isomorphic. So, rewriting some well-known Haskell functions
-to use `Identity` and following these analogies, we up with this:
+`Monad`s and `Alternative`s _in the SQL expresions themselves_, not just in the
+Opaleye query language. The definitions of those functions are not important,
+but you might check the source code if you are curious. What is important is to
+understand the difference between `Kol a` and `Koln a`. Whereas `Koln a`
+explicitly informs us that said `a` might be `NULL`, and that we must explicitly
+deal with that possibility, `Kol a` tells us that `a` can't possibly be `NULL`.
+Or, in another words, `Koln a` is analogous to `Maybe a` while `Kol a` is
+analogous to `Identity a`, and we now that `a` and `Identity a` are isomorphic.
+So, rewriting some well-known Haskell functions to use `Identity` and following
+these analogies, we up with this:
 
 ```haskell
 matchKoln :: Kol      b -> (Kol      a -> Kol      b) -> Koln  a -> Kol      b
@@ -686,3 +687,32 @@ Notice that if we would have blindly “wrapped” the last two columns with `Ko
 we would have ended with `Koln (Koln PGInt4)` in each of them, which doesn't
 make sense. The columns that were `Koln` before need to stay as `Koln`, only the
 columns that were `Kol` in `User_PgR` need to be changed to `Koln`.
+
+## Scenario 5: PgW, PostgreSQL values to be written to the database
+
+Finally, our last scenario. Just like `User_PgR` was the PostgreSQL counterpart
+to `User_HsR`, `User_PgW` here will be the PostgreSQL counterpart to `User_HsI`,
+execept not only will be used when inserting new values, but also when updating
+them. Following our nomenclature, “PgW” stands for “PostgreSQL, write”.
+
+Just like we did for `User_HsI`, where we started from `User_HsR` and added the
+`WDef` wrappers where necessary, here we will start from `User_PgR` and do the
+same, meaning that when inserting or updating a row in the database we can set
+its value to `DEFAULT`.
+
+
+```haskell
+type User_PgW = Record
+  '[ Tagged "id" (WDef (Kol PGInt4))
+   , Tagged "name" (Kol PGText)
+   , Tagged "favoriteNumber" (WDef (Koln PGInt4))
+   , Tagged "age" (Koln PGInt4)
+   ]
+```
+
+And with this we complete our understanding of what is needed to fully leverage
+Opaleye using our `Record` representations. Congratulations to us. But now that
+we understand, we need to teach all of this to the type system so that it can
+remember it for us like `opaleye-sot` does, so that we can forget all these
+details and worry about more important things such as writing the actual SQL
+queries.
