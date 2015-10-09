@@ -436,7 +436,16 @@ type User_HsR = Record
    ]
 ```
 
-## Scenario 2: HsI, Haskell values to be written to the database
+## Scenario 2: Maybe HsR, possibly missing Haskell values read from the database
+
+Even while `User_HsR` is a perfectly acceptable Haskell representation for SQL
+rows comming out of the database, sometimes, those rows will be empty, such as
+in the case of a missing right hand side in a `LEFT JOIN`. For those cases,
+`Maybe User_HsR` will be a perfectly acceptable type within `opaleye-sot`. A
+variant of `User_HsR` where each column is wrapped in `Maybe` is acceptable too,
+but often less practical.
+
+## Scenario 3: HsI, Haskell values to be written to the database
 
 In this scenario the types are mostly like those in the previous one, but we
 also want to consider that some columns can take a `DEFAULT` value when being.
@@ -621,4 +630,59 @@ counterparts to `Kol a` and `Koln a`. What is so special about `Kol a` is that
 it makes it explicit that said `a` may never be `Nullable`. That's all there is
 to it really. Of course there are ways to convert between `Column`, `Kol` and
 `Koln` by means of `kol`, `unKol`, `koln` and `unKoln` so that `opaleye-sot`
-code can readily compose with `opaleye` code using `Column`.
+code can readily compose with `opaleye` code using `Column`. Hopefully this
+explicit difference will exist in `opaleye` proper soon.
+
+
+## Scenario 4: PgR, PostgreSQL values being read from the database
+
+Now that we understand `Kol` and `Koln`, we can proceed to give a Haskell
+representation to the PostgreSQL counterpart of `User_HsR`. We will call it
+`User_PgR` where `PgR` stands for “PostgreSQL, read”.
+
+```haskell
+type User_PgR = Record
+  '[ Tagged "id" (Kol PGInt4)
+   , Tagged "name" (Kol PGText)
+   , Tagged "favoriteNumber" (Koln PGInt4)
+   , Tagged "age" (Koln PGInt4)
+   ]
+```
+
+There is nothing fundamentally new here. We simply started from `User_HsR`,
+replaced `Int32` and `Text` for their PostgreSQL counterparts `PGInt4` and
+`PGText`, and then applied the same isomorphisms and analogies we applied before
+when comparing `maybe` to `matchKoln` or `fmap` to `mapKoln`.
+
+`User_PgR` is the type that will use when writing queries using Opaleye's query
+language, it is our Haskell representation of a SQL row that doesn't exists in
+the Haskell runtime but in the database. `User_PgR` is to `User_HsR` what `Kol`
+is to `Identity` or `Koln` is to `Maybe`.
+
+## Scenario 4: PgRN, possibly missing PostgreSQL values being read from the database
+
+Just like we needed `Maybe User_HsR` to interpret the result of the missing
+right hand side of a `LEFT JOIN` in Haskell, we need something similar for the
+PostgreSQL side of things.
+
+Like we said, a valid alternative to `Maybe User_HsR` is a variant of `User_HsR`
+where each of the column types is wrapped in `Maybe`, signifying as expected
+that each column can be `NULL`. So, it shouldn't be surprising by now that what
+we need is an analogy to that representation but using `Koln` instead of `Maybe`.
+
+Without further ado, we take `User_PgR`, wrap each column type in `Koln`, and
+name the result `User_PgRN`, meaning “PostgreSQL, read, nullable”.
+
+```haskell
+type User_PgRN = Record
+  '[ Tagged "id" (Koln PGInt4)
+   , Tagged "name" (Koln PGText)
+   , Tagged "favoriteNumber" (Koln PGInt4)
+   , Tagged "age" (Koln PGInt4)
+   ]
+```
+
+Notice that if we would have blindly “wrapped” the last two columns with `Koln`
+we would have ended with `Koln (Koln PGInt4)` in each of them, which doesn't
+make sense. The columns that were `Koln` before need to stay as `Koln`, only the
+columns that were `Kol` in `User_PgR` need to be changed to `Koln`.
