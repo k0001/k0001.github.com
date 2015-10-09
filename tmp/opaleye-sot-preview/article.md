@@ -415,7 +415,7 @@ type User_HsR = HList
 
 Perfect. Now the type of the Haskell representation for a value in a
 column (e.g., `Text`) will always be accompanied by the name of its column
-(e.g., `"name"`) at the type-level. Just one last detail: The `HList` library we
+at the type-level (e.g., `"name"`). Just one last detail: The `HList` library we
 are using provides a variant to `HList` named
 [`Record`](https://hackage.haskell.org/package/HList-0.4.1.0/docs/Data-HList-Record.html)
 which has an API specially designed for working with `HList`s whose elements are
@@ -447,7 +447,130 @@ type User_HsR = Record
 >
 > Tony Hoare - 2009
 
-Those must have been very expensive dollars, because there is no way the pain
-and damage caused by null pointers over the years could have cost as little as a
-billion dollars. But for the sake of discussion let's keep it that way and move
-on, it sounds catchy anyway.
+I think a billion dollars is an understatement, but for the sake of discussion
+let's keep it that way and move on. It sounds catchy at least.
+
+SQL, as most other programming languages out there, is happy to take a `NULL`
+value anywhere an expression of a specific type is expected, effectively
+subverting any type-system guarantees—much like `undefined` in Haskell, which
+one does not use, recommend, nor talk about. In SQL, `NULL` is particularly
+noteworthy because we don't always find the world modeled in
+[Sixth Normal Form](https://en.wikipedia.org/wiki/Sixth_normal_form) like
+clockwork. Instead, tables are bound to have missing data, which is most often
+represented as `NULL`.
+
+Once we acknowledge the fact that `NULL` will stay in `SQL` for a while at
+least, and that we have no idea whether
+`SELECT (x :: bool) AND (y :: bool) FROM t` even results in a `bool` value, then
+we need to learn how to deal with it. Or not, because in Haskell we already know
+how to deal with `NULL` by means of `Maybe`.
+
+Most times, if we want to make something useful with a value of type `Maybe a`,
+at some point we will probably need to understand what is `a` and how to use it.
+For example, if we want to `fmap` some function `a -> b` over `Maybe a`, then we
+need to make a choice about what that `a` is, or at least which constraints it
+satisfies. We could say we expect to have a `Maybe Int`, or a `Maybe Bool` or
+even a `Num a => Maybe a`. The important thing to notice is that the `a` in
+`Maybe a` must be a type with a term-level representation that exists in memory
+Haskell at runtime. But when using Opaleye to generate SQL queries, we are not
+dealing with Haskell values that exist in memory at runtime at the very same
+moment when when the SQL is being generated. In Opaleye, when you have a `Column
+PGBool`, that is just a promise that if the generated SQL is ever run, wherever
+it runs, the type of a specific column inside the PostgreSQL database will be
+`bool` (with the caveat that it might contain a `NULL` value), but there is no
+way to manipulate the actual `PGBool` directly. Much like the `t` in `Tagged t
+a`, `PGBool` and similar types exist only at the type-level, they have no
+term-level representation in Haskell at runtime.
+
+In this sense, `Koln PGBool` is
+just like `Column PGBool`: a type-level mechanism
+
+
+What we need, and what `opaleye-sot` offers, is a `Maybe`-like type thing that
+can be used in Opaleye's query language which can't possibly be mixed with a
+non-`Maybe`-like type. Much like how the type-checker keeps us from multiplying
+an `Int` by a `Maybe Int`, we want the type-checker to prevent us from
+multiplying a `PGInt4` by a `PGInt4` that may be `NULL` unless we explicitly
+deal with the fact that said possibility exists. In `opaleye-sot`, we call this
+type `Koln`, short for “Column, nullable”, but with a “K” instead of a “C” to
+avoid any potential confusion with Opaleye's `Column`. A type like `Koln PGBool`
+is basically Opaleye's `Column (Nullable PGBool)`. As I said before,
+[there are plans](https://github.com/tomjaguarpaw/haskell-opaleye/issues/97) to
+implement this idea in Opaleye proper, but for the time being this is only
+available in `opaleye-sot`.
+
+Now that we have a precise Haskell representation for the description of a
+possible `NULL` value in a PostgreSQL column, we can deploy the whole `Maybe`
+toolset we Haskellers have grown to be so fond of:
+
+```haskell
+-- | Like 'maybe'. Case analysis for 'Koln'.
+--
+-- If @('Koln' a)@ is @NULL@, then evaluate to the first argument,
+-- otherwise it applies the given function to the underlying @('Kol' a)@.
+matchKoln :: Kol b -> (Kol a -> Kol b) -> Koln a -> Kol b
+
+-- | Like 'fmap' for 'Maybe'.
+--
+-- Apply the given function to the underlying @('Kol' a)@ only as long as the
+-- given @('Koln' a)@ is not @NULL@, otherwise, evaluates to @NULL@.
+mapKoln :: (Kol a -> Kol b) -> Koln a -> Koln b
+
+-- | Monadic bind like the one for 'Maybe'.
+--
+-- Apply the given function to the underlying @('Kol' a)@ only as long as the
+-- given @('Koln' a)@ is not @NULL@, otherwise, evaluates to @NULL@.
+bindKoln :: Koln a -> (Kol a -> Koln b) -> Koln b
+
+-- | Like @(('<|>') :: 'Maybe' a -> 'Maybe' a -> 'Maybe' a)@.
+--
+-- Evaluates to the first argument if it is not @NULL@, otherwise
+-- evaluates to the second argument.
+altKoln :: Koln a -> Koln a -> Koln a
+```
+
+Why, look at that. We are now reasoning in terms of `Maybe`, `Functor`s,
+`Monad`s and `Alternative`s _inside_ the database! The definitions of those
+functions are not important, but you might check the source code if you are
+curious. What is important is to understand the difference between `Kol a` and
+`Koln a`. Whereas `Koln a` explicitly informs us that said `a` might be `NULL`,
+and that we can't ignore that fact, `Kol a` tells us that `a` can't possibly be
+`NULL`. Or, in another words, `Koln a` is analogous to `Maybe a` while `Kol a`
+is analogous to `Identity a`, and we now that `a` and `Identity a` are
+isomorphic, and that these well-known Haskell functions:
+
+```haskell
+maybe :: b -> (a -> b) -> Maybe a -> b
+fmap  :: (a -> b) -> Maybe a -> Maybe b
+(>>=) :: Maybe a -> (a -> Maybe b) -> Maybe b
+(<|>) :: Maybe a -> Maybe a -> Maybe a
+```
+
+Could as well have been written as:
+
+```haskell
+maybe :: Identity b -> (Identity a -> Identity b) -> Maybe a -> Identity b
+fmap  :: (Identity a -> Identity b) -> Maybe a -> Maybe b
+(>>=) :: Maybe a -> (Identity a -> Maybe b) -> Maybe b
+(<|>) :: Maybe a -> Maybe a -> Maybe a
+```
+
+And putting everything side by side:
+
+```haskell
+maybe     ::          b -> (         a ->          b) -> Maybe a ->          b
+maybe     :: Identity b -> (Identity a -> Identity b) -> Maybe a -> Identity b
+matchKoln :: Kol      b -> (Kol      a -> Kol      b) -> Koln  a -> Kol      b
+
+fmap    :: (         a ->          b) -> Maybe a -> Maybe b
+fmap    :: (Identity a -> Identity b) -> Maybe a -> Maybe b
+mapKoln :: (Kol      a -> Kol      b) -> Koln  a -> Koln  b
+
+(>>=)    :: Maybe a -> (         a -> Maybe b) -> Maybe b
+(>>=)    :: Maybe a -> (Identity a -> Maybe b) -> Maybe b
+bindKoln :: Koln  a -> (Kol      a -> Koln  b) -> Koln  b
+
+(<|>)   :: Maybe a -> Maybe a -> Maybe a
+(<|>)   :: Maybe a -> Maybe a -> Maybe a
+altKoln :: Koln  a -> Koln  a -> Koln  a
+```
