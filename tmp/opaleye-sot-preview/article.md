@@ -1,8 +1,15 @@
 # Opaleye's sugar on top: SQL in the type system where it belongs
 
-Reading, writing and maintaining hand-written SQL is hard and error prone.
-Over the years and in many languages, people have tried to mitigate this problem
-to different extents by creating tools that convert data types back and forth
+_People often talk of how solutions fall naturally into place when we program in
+Haskell and embrace its type system. This article walks us through that process,
+serving as a gentle introduction to some practical uses of advanced features of
+the GHC Haskell type system within the context of Opaleye and SQL. I invite you
+to continue reading even if you are not particularly interested in Opaleye nor
+SQL, as the techniques explained here will be useful in other contexts too._
+
+Reading, writing and maintaining hand-written SQL is hard and error prone. Over
+the years and in many languages, people have tried to mitigate this problem to
+different extents by creating tools that convert data types back and forth
 between SQL and more practical runtime representations, as well as by creating
 vocabularies for expressing queries or manipulation routines over the contents
 of a database in ways that are clearer and more maintainable than just plain
@@ -65,11 +72,6 @@ rapidly and function as a test bed for new features or approaches, some of which
 may eventually make it to `opaleye` proper, without worrying too much about
 backwards compatibility for now. [PostgreSQL](http://www.postgresql.org/) is the
 only supported SQL backend.
-
-__I invite you to continue reading even if you are not particularly interested
-in the concrete problem of SQL. This article says more about Haskell and
-practical uses of the GHC type system than it says about SQL, and it can serve
-as a gentle introduction to advanced features of GHC.__
 
 For the rest of this article, I will assume familiarity with the basic usage of
 Opaleye, and build on that. Familiarity with `HList`, `TypeFamilies`, `GADTs`,
@@ -184,7 +186,7 @@ talk about these types in more detail later, for now we will just see them being
 used together with `HRecord` in different scenarios.
 
 
-## Scenario 1: representation of Haskell values read from the database
+## Scenario 1: HsR, Haskell values read from the database
 
 This is the simplest scenario. Since we are only concerned about reading from
 the database here, we can safely ignore the question of whether `DEFAULT` can be
@@ -314,11 +316,11 @@ particularly interested in this last conversion today.
 
 If you are unfamiliar with kinds, can think of them as “the types of types”.
 Every type that has a term level representation (e.g., `Int`, `Bool`, `Maybe
-Double`, etc.) has a funnily named kind `*`. Type-level strings don't have a
-term-level representation, so its kind is something else: `Symbol` in this case.
-Conversion between a type-level string and a term-level string is made
-explicitly via `symbolVal`. Here's a GHCi session demonstrating the usage of
-`Symbol` and kinds.
+Double`, etc.) has a kind named `*` (yes, `*`, that is the name). Type-level
+strings don't have a term-level representation, so its kind is something else:
+`Symbol` in this case. Conversion between a type-level string and a term-level
+string is made explicitly via `symbolVal`. Here's a GHCi session demonstrating
+the usage of `Symbol` and kinds.
 
 ```
 > :set -XDataKinds
@@ -397,8 +399,8 @@ not so different from the benefits we get from introducing a `newtype` like:
 newtype FrenchPhoneNumber = FrenchPhoneNumber PhoneNumber
 ```
 
-Nevertheless, in general `Tagged t a` is more lightweight than the `newtype`
-solution, and it can be used generically for `t`s that may not be known at
+Nevertheless, `Tagged t a` is at times more convenient to use than the `newtype`
+solution, and it can be used generically for `t`s that may not be yet known at
 compile time.
 
 Putting together our new knowledge of `Tagged`, `Symbol` and we learned about
@@ -433,6 +435,25 @@ type User_HsR = Record
    , Tagged "age" (Maybe Int32)
    ]
 ```
+
+## Scenario 2: HsI, Haskell values to be written to the database
+
+In this scenario the types are mostly like those in the previous one, but we
+also want to consider that some columns can take a `DEFAULT` value when being.
+In our case, the columns `id` and `favoriteNumber`. We will simply wrap with
+`WDef` the types of the elements representing those columns in our `HRecord`.
+`WDef` is defined like this:
+
+```haskell
+data WDef a = WDef | WVal a
+```
+
+The idea is that if you want to write a specific value to a column you wrap it
+in the `WVal` constructor, otherwise you use the `WDef` constructor and
+`opaleye-sot` will replace that with `DEFAULT` in the generated SQL.
+
+We will co
+
 
 ## The billion dollar mistake
 
@@ -537,25 +558,32 @@ and that we must explicitly deal with that possibility, `Kol a` tells us that
 to use `Identity` and following these analogies, we up with this:
 
 ```haskell
-maybe     ::          b -> (         a ->          b) -> Maybe a ->          b
--- 'x' is isomorphic to 'Identity x'
-          :: Identity b -> (Identity a -> Identity b) -> Maybe a -> Identity b
--- 'Identity x' is analogous to 'Kol x', 'Maybe x' is analogous to 'Koln x'
 matchKoln :: Kol      b -> (Kol      a -> Kol      b) -> Koln  a -> Kol      b
-
-fmap    :: (         a ->          b) -> Maybe a -> Maybe b
--- 'x' is isomorphic to 'Identity x'
-        :: (Identity a -> Identity b) -> Maybe a -> Maybe b
 -- 'Identity x' is analogous to 'Kol x', 'Maybe x' is analogous to 'Koln x'
+          :: Identity b -> (Identity a -> Identity b) -> Maybe a -> Identity b
+-- 'x' is isomorphic to 'Identity x'
+maybe     ::          b -> (         a ->          b) -> Maybe a ->          b
+
 mapKoln :: (Kol      a -> Kol      b) -> Koln  a -> Koln  b
-
-(>>=)    :: Maybe a -> (         a -> Maybe b) -> Maybe b
+-- 'Identity x' is analogous to 'Kol x', 'Maybe x' is analogous to 'Koln x'
+        :: (Identity a -> Identity b) -> Maybe a -> Maybe b
 -- 'x' is isomorphic to 'Identity x'
-         :: Maybe a -> (Identity a -> Maybe b) -> Maybe b
--- 'Identity x' is analogous to 'Kol x', 'Maybe x' is analogous to 'Koln x'
-bindKoln :: Koln  a -> (Kol      a -> Koln  b) -> Koln  b
+fmap    :: (         a ->          b) -> Maybe a -> Maybe b
 
-(<|>)   :: Maybe a -> Maybe a -> Maybe a
+bindKoln :: Koln  a -> (Kol      a -> Koln  b) -> Koln  b
 -- 'Identity x' is analogous to 'Kol x', 'Maybe x' is analogous to 'Koln x'
+         :: Maybe a -> (Identity a -> Maybe b) -> Maybe b
+-- 'x' is isomorphic to 'Identity x'
+(>>=)    :: Maybe a -> (         a -> Maybe b) -> Maybe b
+
 altKoln :: Koln  a -> Koln  a -> Koln  a
+-- 'Identity x' is analogous to 'Kol x', 'Maybe x' is analogous to 'Koln x'
+(<|>)   :: Maybe a -> Maybe a -> Maybe a
 ```
+
+Opaleye, as of today, offers `Column a` and `Column (Nullable a)` as
+counterparts to `Kol a` and `Koln a`. What is so special about `Kol a` is that
+it makes it explicit that said `a` may never be `Nullable`. That's all there is
+to it really. Of course there are ways to convert between `Column`, `Kol` and
+`Koln` by means of `kol`, `unKol`, `koln` and `unKoln` so that `opaleye-sot`
+code can readily compose with `opaleye` code using `Column`.
