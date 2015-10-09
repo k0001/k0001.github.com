@@ -447,23 +447,23 @@ type User_HsR = Record
 >
 > Tony Hoare - 2009
 
-I think a billion dollars is an understatement, but for the sake of discussion
-let's keep it that way and move on. It sounds catchy at least.
+I think a billion dollars may be an understatement, but for the sake of
+discussion let's keep it that way and move on.
 
 SQL, as most other programming languages out there, is happy to take a `NULL`
 value anywhere an expression of a specific type is expected, effectively
 subverting any type-system guarantees—much like `undefined` in Haskell, which
 one does not use, recommend, nor talk about. In SQL, `NULL` is particularly
 noteworthy because we don't always find the world modeled in
-[Sixth Normal Form](https://en.wikipedia.org/wiki/Sixth_normal_form) like
-clockwork. Instead, tables are bound to have missing data, which is most often
-represented as `NULL`.
+[Sixth Normal Form](https://en.wikipedia.org/wiki/Sixth_normal_form). Instead,
+tables are bound to have missing data, which is most often represented as
+`NULL`.
 
-Once we acknowledge the fact that `NULL` will stay in `SQL` for a while at
-least, and that we have no idea whether
-`SELECT (x :: bool) AND (y :: bool) FROM t` even results in a `bool` value, then
-we need to learn how to deal with it. Or not, because in Haskell we already know
-how to deal with `NULL` by means of `Maybe`.
+Once we acknowledge the fact that `NULL` will stay in `SQL` for a while, and
+that we have no idea whether `SELECT (x :: bool) AND (y :: bool) FROM t` even
+results in a `bool` value, then we need to learn how to deal with it. Or not,
+because in Haskell we already know how to deal with `NULL` by means of `Maybe`,
+and we can leverage that knowledge.
 
 Most times, if we want to make something useful with a value of type `Maybe a`,
 at some point we will probably need to understand what is `a` and how to use it.
@@ -482,8 +482,8 @@ way to manipulate the actual `PGBool` directly. Much like the `t` in `Tagged t
 a`, `PGBool` and similar types exist only at the type-level, they have no
 term-level representation in Haskell at runtime.
 
-What we need, and what `opaleye-sot` offers, is a `Maybe`-like type thing that
-can be used in Opaleye's query language which can't possibly be mixed with a
+What we need, and what `opaleye-sot` offers, is a `Maybe`-like type that can be
+used in Opaleye's query language and can't possibly be mixed with a
 non-`Maybe`-like type. Much like how the type-checker keeps us from multiplying
 an `Int` by a `Maybe Int`, we want the type-checker to prevent us from
 multiplying a `PGInt4` by a `PGInt4` that may be `NULL` unless we explicitly
@@ -502,71 +502,60 @@ toolset we Haskellers have grown to be so fond of:
 ```haskell
 -- | Like 'maybe'. Case analysis for 'Koln'.
 --
--- If @('Koln' a)@ is @NULL@, then evaluate to the first argument,
--- otherwise it applies the given function to the underlying @('Kol' a)@.
+-- If 'Koln a' is 'NULL', then evaluate to the first argument,
+-- otherwise it applies the given function to the underlying 'Kol a'.
 matchKoln :: Kol b -> (Kol a -> Kol b) -> Koln a -> Kol b
 
 -- | Like 'fmap' for 'Maybe'.
 --
--- Apply the given function to the underlying @('Kol' a)@ only as long as the
--- given @('Koln' a)@ is not @NULL@, otherwise, evaluates to @NULL@.
+-- Apply the given function to the underlying 'Kol a' only as long as the
+-- given 'Koln a' is not 'NULL', otherwise, evaluates to 'NULL'.
 mapKoln :: (Kol a -> Kol b) -> Koln a -> Koln b
 
 -- | Monadic bind like the one for 'Maybe'.
 --
--- Apply the given function to the underlying @('Kol' a)@ only as long as the
--- given @('Koln' a)@ is not @NULL@, otherwise, evaluates to @NULL@.
+-- Apply the given function to the underlying 'Kol a' only as long as the
+-- given 'Koln a' is not 'NULL', otherwise, evaluates to 'NULL'.
 bindKoln :: Koln a -> (Kol a -> Koln b) -> Koln b
 
--- | Like @(('<|>') :: 'Maybe' a -> 'Maybe' a -> 'Maybe' a)@.
+-- | Like '(<|>) :: Maybe a -> Maybe a -> Maybe a'.
 --
--- Evaluates to the first argument if it is not @NULL@, otherwise
+-- Evaluates to the first argument if it is not 'NULL', otherwise
 -- evaluates to the second argument.
 altKoln :: Koln a -> Koln a -> Koln a
 ```
 
-Why, look at that. We are now reasoning in terms of `Maybe`, `Functor`s,
-`Monad`s and `Alternative`s _inside_ the database! The definitions of those
+And with these tools we are can now reason in terms of `Maybe`, `Functor`s,
+`Monad`s and `Alternative`s _inside_ the database. The definitions of those
 functions are not important, but you might check the source code if you are
 curious. What is important is to understand the difference between `Kol a` and
 `Koln a`. Whereas `Koln a` explicitly informs us that said `a` might be `NULL`,
-and that we can't ignore that fact, `Kol a` tells us that `a` can't possibly be
-`NULL`. Or, in another words, `Koln a` is analogous to `Maybe a` while `Kol a`
-is analogous to `Identity a`, and we now that `a` and `Identity a` are
-isomorphic, and that these well-known Haskell functions:
-
-```haskell
-maybe :: b -> (a -> b) -> Maybe a -> b
-fmap  :: (a -> b) -> Maybe a -> Maybe b
-(>>=) :: Maybe a -> (a -> Maybe b) -> Maybe b
-(<|>) :: Maybe a -> Maybe a -> Maybe a
-```
-
-Could as well have been written as:
-
-```haskell
-maybe :: Identity b -> (Identity a -> Identity b) -> Maybe a -> Identity b
-fmap  :: (Identity a -> Identity b) -> Maybe a -> Maybe b
-(>>=) :: Maybe a -> (Identity a -> Maybe b) -> Maybe b
-(<|>) :: Maybe a -> Maybe a -> Maybe a
-```
-
-And putting everything side by side:
+and that we must explicitly deal with that possibility, `Kol a` tells us that
+`a` can't possibly be `NULL`. Or, in another words, `Koln a` is analogous to
+`Maybe a` while `Kol a` is analogous to `Identity a`, and we now that `a` and
+`Identity a` are isomorphic. So, rewriting some well-known Haskell functions
+to use `Identity` and following these analogies, we up with this:
 
 ```haskell
 maybe     ::          b -> (         a ->          b) -> Maybe a ->          b
-maybe     :: Identity b -> (Identity a -> Identity b) -> Maybe a -> Identity b
+-- 'x' is isomorphic to 'Identity x'
+          :: Identity b -> (Identity a -> Identity b) -> Maybe a -> Identity b
+-- 'Identity x' is analogous to 'Kol x', 'Maybe x' is analogous to 'Koln x'
 matchKoln :: Kol      b -> (Kol      a -> Kol      b) -> Koln  a -> Kol      b
 
 fmap    :: (         a ->          b) -> Maybe a -> Maybe b
-fmap    :: (Identity a -> Identity b) -> Maybe a -> Maybe b
+-- 'x' is isomorphic to 'Identity x'
+        :: (Identity a -> Identity b) -> Maybe a -> Maybe b
+-- 'Identity x' is analogous to 'Kol x', 'Maybe x' is analogous to 'Koln x'
 mapKoln :: (Kol      a -> Kol      b) -> Koln  a -> Koln  b
 
 (>>=)    :: Maybe a -> (         a -> Maybe b) -> Maybe b
-(>>=)    :: Maybe a -> (Identity a -> Maybe b) -> Maybe b
+-- 'x' is isomorphic to 'Identity x'
+         :: Maybe a -> (Identity a -> Maybe b) -> Maybe b
+-- 'Identity x' is analogous to 'Kol x', 'Maybe x' is analogous to 'Koln x'
 bindKoln :: Koln  a -> (Kol      a -> Koln  b) -> Koln  b
 
 (<|>)   :: Maybe a -> Maybe a -> Maybe a
-(<|>)   :: Maybe a -> Maybe a -> Maybe a
+-- 'Identity x' is analogous to 'Kol x', 'Maybe x' is analogous to 'Koln x'
 altKoln :: Koln  a -> Koln  a -> Koln  a
 ```
