@@ -1734,14 +1734,16 @@ queryUsersTable = queryTable (table (T::T User))
 Or, assuming we had another table described by `Tisch Drawing` that for some
 users provided details about their drawings, we could even use `table` to do a
 left join between them, using
-[`leftJoin`](https://hackage.haskell.org/package/opaleye-0.4.2.0/docs/Opaleye-Join.html#v:leftJoin):
+[`leftJoin`](https://hackage.haskell.org/package/opaleye-0.4.2.0/docs/Opaleye-Join.html#v:leftJoin)
+from `opaleye`:
 
 ```haskell
 queryUsersAndDrawings :: QueryArr () (PgR User, PgRN Drawing)
 queryUsersAndDrawings =
   leftJoin (queryTable (table (T::T User)))
            (queryTable (table (T::T Drawing)))
-           (\(user, drawing) -> {- the implementation here is not important -})
+           (\(user, drawing) ->
+               {- the implementation here is not important -})
 ```
 
 In general, we can write `table (T::T t)` wherever a `Table w r` is expected.
@@ -1756,7 +1758,7 @@ table' :: Tisch t => Table (PgW t) (PgR t)
 ```
 
 In `opaleye-sot` you will often have variants of the same function, like `table`
-and `table'` here, where the one whose name ends with a `'` is the one whose type
+and `table'` here, where the one whose name ends with `'` is the one whose type
 is expected to be inferred from its context at the use site. We can now rewrite
 `queryUsersTable` to use `table'`:
 
@@ -1778,7 +1780,7 @@ queryTisch _ = queryTisch'
 ```
 
 `Query`, which you haven't seen before, is simply a synonym for `QueryArr ()`.
-That is, `Query (PgR t)` means `Query () (PgR t)`. This comes handy since most
+That is, `Query (PgR t)` means `QueryArr () (PgR t)`. This comes handy since most
 of the times the first argument to `QueryArr` will be `()` anyway.
 
 Now we can rewrite `queryUsersTable` once again:
@@ -1789,11 +1791,11 @@ queryUsersTable = queryTisch'
 ```
 
 But then, why bother? We have simplified the implementation of `queryUsersTable`
-so much that it is probably not worth giving its definition a top-level name
-anymore; we could just inline `queryTisch'` or `queryTisch (T::T User)` when
-needed. One of the goals of `opaleye-sot` is exactly this: Making the things
-that are used in the query language feel so lightweight that we can't justify
-using them anywhere but inline within a query, effectively reducing the
+so much that maybe it is not worth giving its definition a top-level name
+anymore; we could just inline `queryTisch'` or `queryTisch (T::T User)` wherever
+needed. One of the goals of `opaleye-sot` is exactly this: Making the
+things that are used in the query language feel so lightweight that we can't
+justify using them anywhere but inline within a query, effectively reducing the
 maintenance costs over time, as well as the reading and writing overhead.
 
 ## Interpreting results
@@ -1801,14 +1803,14 @@ maintenance costs over time, as well as the reading and writing overhead.
 Let's now run `queryTisch (T::T User)` and interpret the results as a Haskell
 datatype. Opaleye exports a function named
 [`runQuery`](https://hackage.haskell.org/package/opaleye-0.4.2.0/docs/Opaleye-RunQuery.html#v:runQuery)
-, we will use that in this example:
+which we will use in this example:
 
 ```haskell
 runQuery :: Default QueryRunner r h => Connection -> Query r -> IO [h]
 ```
 
 We will not worry too much about the `Default QueryRunner r h` constraint, it
-only says that it should be possible to convert the representation as type `r`
+only says that it should be possible to convert from the representation as type `r`
 of a PostgreSQL query result to a term of type `h` representing the values in
 the columns of that result in the actual Haskell runtime. We know from before
 that when querying just a single table, say the `User` table, `r` will be `PgR
