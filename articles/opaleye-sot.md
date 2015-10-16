@@ -1293,8 +1293,8 @@ type family Cols (schema :: Symbol) (table :: Symbol)
   :: [Col Symbol WD RN * *]
 ```
 
-Assuming `Cols` is being provided by some hypotetical library, users of this
-type family simply have to provide new instances:
+Assuming `Cols` is being provided by some hypotetical library, users of this type
+family simply have to provide new instances for it:
 
 ```haskell
 type instance Cols "public" "user"
@@ -1315,14 +1315,19 @@ type TaggedCols (schema :: Symbol) (table :: Symbol)
 
 However, this is still unsatisfactory. The problem is that maybe in our codebase
 we happen to need to interact with two or more different databases at the same
-time, where some of them might have tables named `"user"` in a schema named
-`"public"` of shapes different from the one we just laid out, and our current
-approach with `Cols` requires that there exists only one combination of schema
-name and table name. In order to fix this, `Cols` needs to take a third type
-parameter that uniquely identifies the database where the table exists. This new
-parameter doesn't carry any meaning, it is there only to disambiguate one
-database from another one, so it can be any type the user wants to provide. So,
-our definition of `Cols` will look like this:
+time, where two or more of them might have tables named `"user"` in a schema
+named `"public"` with shapes different from the one we just laid out. However, our
+current approach with `Cols` requires that there exists only one combination of
+schema name and table name. In order to fix this, `Cols` needs to take a third
+type parameter that uniquely identifies the database where the table exists.
+We are not interested in what this type is, we are only interested in the
+meaning we decide to give to its role: This type parameter will be used as a
+unique identifier for a database, and as long as it is equal to another type
+used in a similar way we will say that we are talking about a same database,
+otherwise we will say that we are talking about different ones. It is up to the
+user to decide which type to provide, we the library authors are not interested
+in the type per se but in its role. So, our definition of `Cols` will look like
+this:
 
 ```haskell
 type family Cols (database :: k) (schema :: Symbol) (table :: Symbol)
