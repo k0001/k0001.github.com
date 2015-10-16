@@ -89,7 +89,8 @@ For the rest of this article, I will assume familiarity with the basic usage of
 Opaleye, and build on that. Familiarity with `HList`, `TypeFamilies`, `GADTs`,
 `Arrows`, `DataKinds`, `PolyKinds` and `KindSignatures` will be useful too, but
 not required. We will cover the topic of preventing _the wrong SQL_, but first
-let us worry about a the simpler topic of boilerplate.
+let us worry about the simpler topic of boilerplate. That is, about things we
+would rather not write.
 
 
 ## Boilerplate and representations
@@ -107,7 +108,7 @@ concrete Haskell representation we may use the type `Foo Bool String`, but when
 writing said SQL row to the database we will need to use `Foo (Column PGBool)
 (Column PGText)`. For this reason, Opaleye recommends leaving `a` and `b`
 polymorphic, and using type synonyms to fix `a` and `b` to particular types
-depending on the scenario. There is a only a limited number of scenarios like
+depending on the scenario. There is only a limited number of scenarios like
 these two where `a` and `b` will need to change. Personally, I think this is a
 good approach to working with different yet somewhat similar representations,
 but hopefully we all can agree that this can lead to a non-negligible amount of
@@ -1218,7 +1219,7 @@ SQL query, perhaps across many tables. Still, making the connection between SQL
 rows and SQL tables is necessary in many cases, so we will work on that.
 
 We want to treat each table as a completely different entity and have the
-type-checker help us enforce that so that not even tables that have the same
+type-checker help us enforce it so that not even tables that have the same
 shape can be accidentally confused. But, as different as these tables might be,
 we want to be able to work with all of them in an uniform and lightweight
 manner. Accomplishing all of this will be our goal.
