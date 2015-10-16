@@ -1720,7 +1720,7 @@ out of thin air we make a term-level value of type `TableProperties (PgW t) (PgR
 t)`, and finally we just give those three arguments to `TableWithSchema`. I
 promise this is not a magical process, this is just profiting at the term-level
 from information that is already present at the type-level. You can always go
-from types to terms in Haskell, what's hard is going in the other direction, but
+from types to terms in Haskell—what's hard is going in the other direction, but
 we are not trying to accomplish that today.
 
 With `table` implemented, we finally have a way to derive a `Table (PgW t) (PgR
