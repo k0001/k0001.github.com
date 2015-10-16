@@ -1385,7 +1385,7 @@ The difference between associated open type families and normal open type
 families is that associated type families are declared inside typeclasses, and
 instances for said type family are given within the instances for the typeclass
 itself. This enables us, among other things, to mention the associated type
-family in the class or instance context, where we can further constraint them.
+family in the class or instance context where we can further constraint them.
 Let's take for example `Bar`, our open type family from before:
 
 ```haskell
@@ -1400,23 +1400,23 @@ class Qux (x :: *) where
   type Bar x :: *
 ```
 
-And instances for this typeclass and associated type family are specified in the
-following way, possibly in different modules:
+And instances for this typeclass and associated type family would be specified
+in the following way, possibly in different modules:
 
 ```haskell
 instance Qux Int where
-  type Int = Bool
+  type Bar Int = Bool
 ```
 
 ```haskell
 instance Qux Char where
-  type Int = Double
+  type Bar Int = Double
 ```
 
 This new `Bar` still has the kind `* -> *`, and it is defined for every `x` that
-is an instance of `Qux`. And as we said, we can further constraint `Bar x` so
-that it satisfies some particular constraints. For example, we could enforce
-that `Bar x` be an instance of `Num`:
+is an instance of `Qux`. And as we wanted, now, we can further constraint `Bar
+x` so that it satisfies some particular constraints. For example, we could
+enforce that `Bar x` be an instance of `Num`:
 
 ```haskell
 class Num (Bar x) => Qux (x :: *) where
@@ -1427,7 +1427,7 @@ With this new definition of `Qux`, the previously given instance for `Qux Int`
 would fail to compile because `Bar Int` is `Bool`, which is not an instance of
 `Num`, effectively giving us early compile time errors at the definition site
 for things that would probably have been constrained on their use site anyway,
-leading to compile errors there.
+leading to compile errors there later.
 
 One last minor remark: Just like when using a method `f` of a class `X` on a
 term `a :: t` requires that there is an instance of `X` in scope that defines
@@ -1437,7 +1437,7 @@ exists an instance of `Qux x` in scope, meaning that this constraint will be
 propagated upstream until it is satisfied.
 
 Let's now convert our `Cols` to an associated open type family within a type
-class that we will call `Tisch`, which is the German work for “table”, a good
+class that we will call `Tisch`, which is the German word for “table”—a good
 name because it doesn't clash with Opaleye's `Table`, a type we will use later
 on.
 
@@ -1449,12 +1449,12 @@ class ITisch database schemaName tableName
 ```
 
 We will not pay attention at all to the internals of the `ITisch` superclass; as
-we suggested before, it just constraints `Cols` further as we did in our `Qux`
-and `Bar` example, and it ensures `Cols` satisfies many constraints that will be
-required by `HList` and `Record`. The implementation of `ITisch`, however,
-doesn't teach us anything fundamentally new, so let's ignore it. The
-`TaggedCols` from before would continue to work just fine because `Cols` still
-takes the same three type arguments.
+we suggested before, it just constraints `Cols` as we did in our `Qux` and `Bar`
+example, and it ensures `Cols` satisfies many constraints that will be required
+by `HList` and `Record`. The implementation of `ITisch` however, doesn't teach
+us anything fundamentally new, so let's ignore it. Also, the `TaggedCols` from
+before would continue to work just fine because `Cols` still takes the same
+three type arguments.
 
 `Tisch` as defined above is fine, but hopefully you can see that passing those
 three arguments everywhere will get cumbersome, even more so if we keep in mind
@@ -1536,7 +1536,7 @@ will simplify some things later, or when I tell you that the `ITisch` constraint
 on `Tisch` is there to keep us from harm and reduce some noise related to the
 usage of `HList` and `Record`, what I am really saying is that for reasons that
 should become apparent later, these choices serve our ultimate purpose well. The
-type-checker told me so.
+type-checker told me so, as it would have told you had you two been talking.
 
 Regarding these interactive sessions with the type-checker, I am sure most have
 their own story. For me it was years ago when I spent many hours failing to
@@ -1546,7 +1546,7 @@ it wasn't possible, but eventually I did, and never again I had trouble
 reasoning about parametric polymorphism in typeclasses and related concepts.
 _Peer-programming_ with the type system, if you will, is a beautiful and
 enriching exercise no matter how silly the things we are trying to understand
-might seem at first.
+might seem at first. It is worth trying.
 
 
 ## Every type we will ever need
@@ -1554,12 +1554,12 @@ might seem at first.
 From a type `t` that is an instance of `Tisch` we can derive every type we will
 ever need for working with the Opaleye scenarios we want to support. This
 shouldn't be a surprise to us, after all we have already achieved this once
-before with our definitions of `Cols_HsR`, `Cols_HsI`, etc. We know that we can
-already say `Cols_HsR t` and move on. Nevertheless, similarly to what we did
-with `TaggedCols` before, we would like to tag the resulting `Record` with some
+before with our definitions of `Cols_HsR`, `Cols_HsI`, etc. We already know that
+we can say `Cols_HsR t` and move on. Nevertheless, similarly to how we did with
+`TaggedCols` before, we would like to tag the resulting `Record` with some
 identifier for our table so as to keep us from accidentally attempting to, say,
 interpret the result of one table as the Haskell representation intended for a
-different table. This is no secret to us anymore: We know why telling apart
+different one. This is no secret to us anymore: We know why telling apart
 apples from oranges is useful; it teaches the type system to tell right from
 wrong, and we value that. What we want is a type-level function like the
 following one, which takes as argument a `t` that is an instance of `Tisch`:
@@ -1572,7 +1572,8 @@ type HsR t = Tagged t (Cols_HsR (Cols t))
 And similarly for the `HsI`, `PgR`, `PgRN` and `PgW` scenarios. Of course, if we
 start putting `Tagged` values in datatypes like this one, expected to play well
 with Opaleye, we have to ensure `ProductProfunctor` instances can exist for
-them. But they can, so let's not worry about it.
+them. But they can, and they are exported by `opaleye-sot`, so let's not worry
+about it.
 
 Fundamentally, there is not much more to this, but from a practical point of
 view there is one last thing to do: Just like we created `WDef`, `WD` and `RN`
@@ -1589,12 +1590,12 @@ columns for a table from a `Tagged` single column, because we know that we will
 only ever use `T` to tag things that concern the entire table. As a bouns, this
 will the improve the clarity and readability of queries and compiler errors when
 using `T` within Opaleye's query language. Hopefully you will agree that
-writing `T::T User`, which we will frequently need to write in our query
-language, can lead to code that is more readable than the usual `Proxy :: Proxy
-User`; and that compilation errors talking about `T` will guide us in the right
-direction. So, we will change the `HsR` function we just introduced, as well as
-its siblings, to use `T`. Later on, when paying attention to the query language,
-we will see more sophisticated uses for `T`.
+writing `T::T User`—which we will frequently need to write in our query
+language—can lead to code that is more readable than if we used the usual `Proxy
+:: Proxy User`, and that compilation errors talking about `T` will guide us in
+the right direction. So, we will change the `HsR` function we just introduced,
+as well as its siblings, to use `T`. Later on, when paying attention to the
+query language, we will see more sophisticated uses for `T`.
 
 ```haskell
 type HsR t = Tagged (T t) (Cols_HsR (Cols t))
@@ -1644,7 +1645,7 @@ or any of the
 in Opaleye, that `Query (PgR User)` is an acceptable type for the return type of
 `queryTable`, that `PgRN User` can be one of the types resulting from a
 [`leftJoin`](https://hackage.haskell.org/package/opaleye-0.4.2.0/docs/Opaleye-Join.html#v:leftJoin)
-that a function of type `(PgR User -> PgW User)` can be passed as a callback
+that a function `PgR User -> PgW User` can be passed as a callback
 argument to
 [`runUpdate`](https://hackage.haskell.org/package/opaleye-0.4.2.0/docs/Opaleye-Manipulation.html#v:runUpdate),
 and that a list of `HsR User` can be obtained from
@@ -1676,17 +1677,17 @@ an `Arrow` interface, takes an argument of type `()` and returns a value of type
 `r`. Notice that just like we can't tell from the type `Maybe Int` whether it
 contains `Just 5` or `Nothing`, we can't tell from the type what this `QueryArr
 () r` does. However, if we were to look inside it we would find that it
-generates a query analogous to `SELECT t.x, t.y FROM s.t`. For now you will have
-to trust me on this. The result of this query, that is, the `r` in `QueryArr ()
-r`, will be a Haskell representation of the values in the selected PostgreSQL
-columns. The `()`, as you can probably imagine, is superfluous, yet it needs to
-be passed around to satisfy the needs of the `Arrow` interface. Thus, we
-conclude that any knowledge about `s`, `t`, `x` and `y` must come from the
-passed in `Table w r`.
+generates a query analogous to `SELECT a.x, a.y FROM s.t a`, and for now you
+will have to just trust me on this. The result of this query, that is, the `r` in
+`QueryArr () r`, will be a Haskell representation of the values in the selected
+PostgreSQL columns. The `()`, as you can probably imagine, is superfluous, yet
+it needs to be passed around to satisfy the needs of the `Arrow` interface.
+Thus, we conclude that any knowledge about `s`, `t`, `x` and `y` must come from
+the passed in `Table w r`.
 
 We know that a `Table w r` must specify at least its name and the name of its
 schema, none of which show up in the type, as well as the Haskell representation
-for PostgreSQL values in table columns, showing up as `r` in the type. We
+for PostgreSQL values in table columns showing up as `r` in the type. We
 already know this much. Additionally, we can learn from Opaleye's documentation
 that `w` indicates the Haskell representation of PostgreSQL values when these
 are being written to the table columns. From this we can hypothesize that `Table
@@ -1710,17 +1711,17 @@ said before, in `opaleye-sot` we use `T` throughout the API whenever we want to
 tag something that has a `Tisch` instance, as this leads to more readable code
 in the query language and to more helpful error messages.
 
-I won't go into the details of how `table` is implemented because it is not
-fundamentally important and it would take a long time to explain; you are invited
-read the source code for it in `opaleye-sot` if you are curious. It should
-suffice to say that given a `t`, we convert `SchemaName t` and `TableName t` to
-`String`s using `symbolVal`, then seemingly out of thin air we make a term-level
-value of type `TableProperties (PgW t) (PgR t)`, and finally we just give those
-three arguments to `TableWithSchema`. I promise this is not a magical process,
-this is just profiting at the term-level from information that is already
-present at the type-level. You can always go from types to terms in Haskell,
-what's hard is going in the other direction, but we are not trying to accomplish
-that today.
+Even if quite illuminating, I won't go into the details of how `table` is
+implemented because it is not fundamentally important and it would take a long
+time to explain; you are invited read the source code for it in `opaleye-sot` if
+you are curious. It should suffice to say that given a `t`, we convert
+`SchemaName t` and `TableName t` to `String`s using `symbolVal`, then seemingly
+out of thin air we make a term-level value of type `TableProperties (PgW t) (PgR
+t)`, and finally we just give those three arguments to `TableWithSchema`. I
+promise this is not a magical process, this is just profiting at the term-level
+from information that is already present at the type-level. You can always go
+from types to terms in Haskell, what's hard is going in the other direction, but
+we are not trying to accomplish that today.
 
 With `table` implemented, we finally have a way to derive a `Table (PgW t) (PgR
 t)` for any `Tisch t`. For example, we can write:
