@@ -1,6 +1,8 @@
-# Opaleye's sugar on top: SQL in the type system where it belongs
+<nav><a href="../">Home</a> § <a href="../">About</a></nav>
 
-_— By Renzo Carbonara. First published in October 2015._
+# Opaleye's sugar on top
+
+<p class="subtitle">SQL in the type system where it belongs</p>
 
 People talk of how solutions fall naturally into place when we program in
 Haskell and embrace its type system. This article walks us through that process,
@@ -9,7 +11,7 @@ the Haskell type system in GHC within the context of Opaleye and SQL. I invite
 you to continue reading even if you are not particularly interested in Opaleye
 nor SQL, as the approach explained here can be used in other contexts too.
 
-**WARNING: This is not introductory material to Haskell**, it is instead an
+**This is not introductory material to Haskell**, it is instead an
 introduction to practical uses of some of Haskell's advanced type system
 features in GHC. For things here to make sense, the reader is expected to be
 comfortable with concepts like `Functor`, `Monad` , `Arrow` and `Lens`. This is
@@ -17,7 +19,9 @@ a very long article that intends to teach you how to use the GHC type system to
 build resilient software and reason about any problem you might want to tackle
 with it.
 
-# The problem
+_— By Renzo Carbonara. First published in October 2015._
+
+## The problem
 
 Reading, writing and maintaining hand-written SQL is hard and error prone. Over
 the years and in many languages, people have tried to mitigate this problem to
@@ -506,6 +510,7 @@ right from wrong once again.
 
 ## The billion dollar mistake
 
+<div class="epigraph">
 > I call it my billion-dollar mistake. It was the invention of the null reference
 > in 1965. At that time, I was designing the first comprehensive type system for
 > references in an object oriented language (ALGOL W). My goal was to ensure that
@@ -515,7 +520,8 @@ right from wrong once again.
 > innumerable errors, vulnerabilities, and system crashes, which have probably
 > caused a billion dollars of pain and damage in the last forty years.
 >
-> _— Tony Hoare, 2009._
+> <footer>Tony Hoare, 2009.</footer>
+</div>
 
 SQL, as most other programming languages out there, is happy to take `NULL`
 anywhere an expression of a specific type is expected, effectively
@@ -1634,7 +1640,7 @@ We have completed our understanding of how to represent SQL tables in the type
 system. If you would like to make a pause before continuing, this would be a
 good time. Next we will learn how to use the tables we have defined here.
 
-## Table
+## Tisch befriends Opaleye
 
 The simplest useful thing we can do with a SQL table is to query it. Opaleye
 exports an function named
@@ -2204,7 +2210,7 @@ functions for comparing for order, logical conjunction and disjunction, etc.
 Additionally, unary operators like SQL's `NOT` can be made to work over a
 similar range of argument types, and indeed they do in `opaleye-sot`.
 
-# Updating rows
+## Updating rows
 
 The last topic we will cover today is updating rows. `opaleye-sot` exports
 a function named `runUpdate` which behaves just like `opaleye`'s own
@@ -2289,7 +2295,7 @@ a problem to its essentials. We have seen how it is possible to clean up a
 public API so that it covers as many scenarios as possible while staying correct
 and predictable. We have learned how to help users accomplish their goals with
 as little friction and as much safety as possible. We have given a practical
-perspective to advanced type feature systems. We have saved a billion dollars.
+perspective to advanced type feature systems. Have we saved a billion dollars too?
 
 We did embrace Opaleye and the generation of well-formed and _not wrong_ SQL as
 our scenario, but it is important to realize that these techniques are still
@@ -2315,5 +2321,9 @@ can be considered “production ready”. Meanwhile, I invite you to go and expl
 its [source code](https://github.com/k0001/opaleye-sot), as well its
 [documentation](). In the source code you will find a tutorial in the works too,
 with some additional examples. All of it free and open source.
+
+## Discussion
+
+You can discuss this comment at [reddit]().
 
 _— By Renzo Carbonara. First published in October 2015._
