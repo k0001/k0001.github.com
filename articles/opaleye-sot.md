@@ -7,9 +7,9 @@
 People often talk of how solutions fall naturally into place when we program in
 Haskell and embrace its type system. This article walks us through that process,
 serving as a gentle introduction to some practical uses of advanced features of
-the Haskell type system in GHC within the context of Opaleye and SQL. I invite
-you to continue reading even if you are not particularly interested in Opaleye
-nor SQL, as the approach explained here can be used in other contexts too.
+the Haskell type system within the context of Opaleye and SQL. I invite you to
+continue reading even if you are not particularly interested in Opaleye nor SQL,
+as the approach explained here can be used in other contexts too.
 
 **This is not introductory material to Haskell**. For things here to make sense,
 the reader is expected to be comfortable with concepts like `Functor`, `Monad` ,
@@ -17,12 +17,6 @@ the reader is expected to be comfortable with concepts like `Functor`, `Monad` ,
 you how to use the GHC type system to build resilient software and reason about
 any problem you might want to tackle with it.
 
-<div style="margin-left:1em; padding-left:1em; border-left: solid #111 1px;">
-_Text by <a href="../">Renzo Carbonara</a>. First published in October 2015.<br/>
-This work is licensed under a <a rel="license"
-href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution
-4.0 International License</a>._
-</div>
 
 ## The problem
 
