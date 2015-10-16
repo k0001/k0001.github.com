@@ -154,7 +154,7 @@ making it a suitable datatype for Opaleye, but also preventing us from having to
 define a new `ProductProfunctor` instance for each different Haskell
 representation we would like to use for mapping SQL rows. For these reasons, we
 will use `HList` as the preferred container for all our SQL row mapping needs,
-which gives us an uniform way to work with different SQL rows.
+which gives us a uniform way to work with different SQL rows.
 
 Armed with `HList`, we can now to try map between it and an actual SQL row in
 different Opaleye scenarios. We will use this contrived but comprehensive SQL as
@@ -1221,11 +1221,11 @@ rows and SQL tables is necessary in many cases, so we will work on that.
 We want to treat each table as a completely different entity and have the
 type-checker help us enforce it so that not even tables that have the same
 shape can be accidentally confused. But, as different as these tables might be,
-we want to be able to work with all of them in an uniform and lightweight
+we want to be able to work with all of them in a uniform and lightweight
 manner. Accomplishing all of this will be our goal.
 
-In PostgreSQL, each table can be uniquely identified by its name and the name of
-the schema it belongs. These are just strings, and we already know that strings
+In PostgreSQL each table can be uniquely identified by its name and the name of
+the schema it belongs to. These are just strings, and we already know that strings
 can exists at the type-level in the form of `Symbol`. For our `user` table we
 can say that `"user" :: Symbol` is its name, and that `"public" :: Symbol` is
 the name of its schema. With this in mind we can restrict the type-level list of
@@ -1248,19 +1248,19 @@ on, but that would mean introducing a new type synonym for every table that we
 wanted to support, and we wouldn't be able to enforce some constraints we would
 like to enforce on these types at their definition site. We will instead rely
 on _open type families_, or more precisely, _associated open type families_.
-These will allow us to achieve all our goals.
+These will allow us to achieve all of our goals.
 
 The type-level functions we have been using until know are officially known as
 _closed type families_, and what is so special about them is that, akin to
 normal term-level functions, all of their patterns must be defined on the very
-same place within the body of the `where` clause. On the other hand, _open type
+same place within the body of its `where` clause. On the other hand, _open type
 families_ are defined more like typeclasses and their instances: we declare
 the type family just once in a single place and then give instances for that
 type family possibly across different modules. This _open world assumption_
 makes open type families fundamentally necessary if we don't know at compile
 time all of the types on which our type-level function should work, like in our
 case. The differences in syntax between open and closed type families are
-minimal; for example, let's convert our `Bar` closed type family from before
+minimal. For example, let's convert our `Bar` closed type family from before
 into an open type family.
 
 Closed type family:
