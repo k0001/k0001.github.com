@@ -173,18 +173,35 @@ Notice what is special about those 4 columns regarding the values they can take:
 
 <div class="table-wrapper" style="overflow-x:visible;">
 
-Column            Can contain `NULL`?  Can `DEFAULT` be written to it?
-----------------  -------------------  -------------------------------
-`id`              No                   Yes
-`name`            No                   No
-`favoriteNumber`  Yes                  Yes
-`age`             Yes                  No
+Column            Can it contain `NULL`?  Do we want `DEFAULT` to be written to it?
+----------------  ----------------------  -----------------------------------------
+`id`              No                      Yes
+`name`            No                      No
+`favoriteNumber`  Yes                     Yes
+`age`             Yes                     No
 
 </div>
 
 
-In `opaleye-sot` we distinguish between these combinations explicitly, more so
-than how Opaleye does it out of the box today—although
+Notice how we worded our question: _Do we want `DEFAULT` to be written to it?_
+We put it this way because in PostgreSQL, unfortunately, even if you do not ask
+for a column to have a default value, `DEFAULT` can be written to it, and by
+default `DEFAULT` means `NULL`. That is, `DEFAULT` is at times just a different
+spelling for `NULL`. Later we will talk about why `NULL` is, was, and will ever
+be a terrible idea, but for the time being we have to acknowledge the fact that
+it exists and that we have to deal with it, which we will do by hiding it under
+a type-safe interface that will prevent this accidental meaning for `DEFAULT`.
+This will force us to say `NULL` if we want to say `NULL`, or to explicitly
+acknowledge, per column, that `DEFAULT` is an acceptable value to write to it
+even when it could mean `NULL`. So, from now on we will ignore the fact that
+`DEFAULT` can be written to any column if done manually from SQL, because from
+within `opaleye-sot`'s DSL `DEFAULT` will only be available if we asked for it.
+With that important assumption in mind, let's proceed to evaluate the table we
+just listed.
+
+In `opaleye-sot` we distinguish between the combinations of whether `NULL` and
+`DFAULT` are possible explicitly, even more so than how Opaleye does it out of
+the box today—although
 [there are plans to improve this](https://github.com/tomjaguarpaw/haskell-opaleye/issues/97).
 We will talk about this in more detail later.
 
