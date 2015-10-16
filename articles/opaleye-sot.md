@@ -1813,8 +1813,8 @@ We will not worry too much about the `Default QueryRunner r h` constraint, it
 only says that it should be possible to convert from the representation as type `r`
 of a PostgreSQL query result to a term of type `h` representing the values in
 the columns of that result in the actual Haskell runtime. We know from before
-that when querying just a single table, say the `User` table, `r` will be `PgR
-User`, and that `h` will be `HsR User` which we designed specifically for this
+that when querying just a single table such as `User`, `r` will be `PgR
+User` and `h` will be `HsR User` which we designed specifically for this
 purpose:
 
 ```haskell
@@ -1832,40 +1832,40 @@ getUsersAndDrawings conn = runQuery conn queryUsersAndDrawings
 ```
 
 At some point we may want to convert these `HsR User` and `HsR Drawing` to other
-internal representation of our own. This is not necessary at all, if `HsR User`
-suffices for us we can definitely work with that, we have the entire `Record`
-API at our disposal out of the box. But maybe we need to interface with other
-piece of our codebase or a third party library that expects a different
-representation for a user, and for those cases you will want to abandon the `HsR
-User` representation. A simple function `myUserFromHsRUser :: HsR User -> Maybe
-MyUser` would work just fine, but for your convenience `opaleye-sot` exports a
-typeclass `Tisch t => UnHsR t a` with a single method `unHsR' :: HsR t -> Either
-SomeException a`. This is mostly so that we can treat conversions from any `HsR
-t` uniformly and that we don't have to think of names for these conversions
-functions, which is very hard. The monomorphic `Either SomeException` wrapper
-around `a` makes `Applicative` and `Monadic` composition of `unHsR'` results
-very practical, a very desirable property when trying to combine results from
-different queries; and of course, the `SomeException` is there so that you can
-be very precise about why converting from `HsR User` to `MyUser` failed, for
-example.
+internal representations of our own. This is not necessary though, if `HsR User`
+suffices for us we can definitely work with that, and then we would have the
+entire `Record` API at our disposal out of the box. But maybe we need to
+interface with other piece of our codebase or a third party library that expects
+a different representation for a user or a drawing, and for those cases you will
+want to abandon the `HsR User` representation. A simple homemade function
+`HsR User -> Maybe MyUser` would work just fine, but for
+your convenience `opaleye-sot` exports a typeclass `Tisch t => UnHsR t a` with a
+single method `unHsR' :: HsR t -> Either SomeException a`. This is mostly so
+that we can treat conversions from any `HsR t` uniformly and that we don't have
+to think of names for these conversions functions, which is very very hard. The
+monomorphic `Either SomeException` wrapper around `a` makes the `Applicative` and
+`Monad`ic composition of `unHsR'` results very practical, a very desirable
+property when trying to combine results from different queries; and of course,
+the `SomeException` is there so that you can be very precise about why
+converting from `HsR User` to `MyUser` failed, for example.
 
 As a general recommendation: Remember that as our application evolves `HsR User`
 will probably change, so we should build resilient code here. The best way to do
 this, of course, is by always preferring to use the most precise types
 available, but sometimes that won't be practical; for example, you wouldn't
 create an `PersonAgeInYears` type that contains an integer number between 0 and
-180 or whatever the optimal life expectancy is, instead you would just use an
-unsigned integer. If we know, for example, that the only acceptable favorite
-colors within `MyUser` will be red, black or purple, then let us check this
-explicitly when converting from `HsR User` to `MyUser` and fail with a precise
-exception when that is not the case. For example, we may fail with a
-`MyUser_BadFavoriteColour` exception, which will be very easy to recognize if it
-ever happens in the future. We have a powerful language at our disposal, let's
-use it wisely.
+whatever the optimal life expectancy is, instead you would just use an
+unsigned integer. If we had favorite colors, for example, and we knew that the
+only acceptable favorite colors within `MyUser` would be red, black or purple,
+then let us check this explicitly when converting from `HsR User` to `MyUser`
+and fail with a precise exception when that is not the case. For example, we may
+fail with a `MyUser_BadFavoriteColour` exception, which will be very easy to
+recognize if it ever happens in the future. We have a powerful language at our
+disposal, let's use it wisely.
 
 ## Inserting rows
 
-We will now go in the other direction: from Haskell into the PostgreSQL
+We will now go in the other direction: From Haskell into the PostgreSQL
 database. We know we have thought about this scenario before when we implemented
 `HsI` and `PgW`, so we should be covered. Let's just worry about how to actually
 perform an insert using the
@@ -1880,7 +1880,7 @@ There's nothing fundamentally new for us here: We already know what `Table w r`
 means and we know that `Table (PgW t) (PgR t)` is a suitable candidate for it.
 The returned `Int64` is of no particular concern to us at this point, it just
 mentions the number of rows that were actually inserted to the database. We know
-how to build a `Table (PgW t) (PgR t)` by means of 'table', but how do we build
+how to build a `Table (PgW t) (PgR t)` by means of `table`, but how do we build
 the `PgW t` we need to pass as a second argument? Well, `PgW t` is just a
 `Record` with nothing more than `Tagged`s, `Kol`s, `Koln`s and `WDef`s in it, so
 in principle we could build it by hand. In practice, however, it is easier to
@@ -1892,8 +1892,8 @@ we can use any of the tools exported by the `HList` library to build one. As a
 convenience, `opaleye-sot` exports a function named `mkHsI` for constructing an
 `HsI t` in a resilient and practical way. Similarly to the
 [`hEndR`](https://hackage.haskell.org/package/HList-0.4.1.0/docs/Data-HList-HList.html#g:8)
-function for building `Records`s, `mkHsI` is intended to be used together with
-[`hBuild`](https://hackage.haskell.org/package/HList-0.4.1.0/docs/Data-HList-HList.html#v:hBuild)
+function for building `Record`s, `mkHsI` is intended to be used together with
+[`hBuild`](https://hackage.haskell.org/package/HList-0.4.1.0/docs/Data-HList-HList.html#v:hBuild).
 For example, using `mkHsI` you could write the following function that
 constructs an `HsI User`:
 
@@ -1912,9 +1912,9 @@ toHsI_User name favNum age =
 ```
 
 `mkHsI` takes as its only argument a function `f` that will return an `HList` of
-all the `Tagged (TC t c) a` elements `HsI t` expects but, not necessarily in its
+all the `Tagged (TC t c) a` elements `HsI t` expects, but not necessarily in its
 canonical order. This function `f` is passed as its only argument yet another
-function, here named `set_`, that will allow us to construct one of those
+function, here bound to the name `set_`, that will allow us to construct one of those
 `Tagged (TC t c) a` values, effectively associating a value `a` to a column
 named `c` in the table uniquely identified by `t`. Perhaps it is easier if you
 think of `set_` just an assignment operator:
@@ -1929,7 +1929,8 @@ mkHsI $ \(:=) -> hBuild
 
 This is no magic. What we are seeing here, for the first time, is an usage of
 the type-level names we gave to columns: `C::C "id"` uniquely identifies a
-column named `"id"` in some table at the type-level. `C` is comparable to
+column named `"id"` in some table at the type-level, and we already knew that we
+would be using these as sort of references to our columns. `C` is comparable to
 the `Proxy`-like types `T` and `TC` what we saw before, and it exists for
 similar reasons and serves related purposes:
 
