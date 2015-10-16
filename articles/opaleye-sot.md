@@ -1915,7 +1915,7 @@ toHsI_User name favNum age =
 all the `Tagged (TC t c) a` elements `HsI t` expects, but not necessarily in its
 canonical order. This function `f` is passed as its only argument yet another
 function, here bound to the name `set_`, that will allow us to construct one of those
-`Tagged (TC t c) a` values, effectively associating a value `a` to a column
+`Tagged (TC t c) a` values effectively associating a value `a` to a column
 named `c` in the table uniquely identified by `t`. Perhaps it is easier if you
 think of `set_` just an assignment operator:
 
@@ -1930,9 +1930,10 @@ mkHsI $ \(:=) -> hBuild
 This is no magic. What we are seeing here, for the first time, is an usage of
 the type-level names we gave to columns: `C::C "id"` uniquely identifies a
 column named `"id"` in some table at the type-level, and we already knew that we
-would be using these as sort of references to our columns. `C` is comparable to
-the `Proxy`-like types `T` and `TC` what we saw before, and it exists for
-similar reasons and serves related purposes:
+would be using these as sort of references to our columns, so this shouldn't
+come as a surprise. `C` is comparable to the `Proxy`-like types `T` and `TC`
+what we saw before, and it exists for similar reasons and serves related
+purposes:
 
 ```haskell
 data C (c :: Symbol) = C
