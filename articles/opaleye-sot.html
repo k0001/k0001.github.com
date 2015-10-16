@@ -735,7 +735,9 @@ q1 <span class="fu">=</span> proc () <span class="ot">-&gt;</span> <span class="
 <p>And indeed it does, but there’s much more to it than this monomorphic type. If we look at the type of <code>eq</code> in <code>opaleye-sot</code> we find this appalling type:</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">eq ::</span> <span class="dt">Op_eq</span> x a b c <span class="ot">=&gt;</span> a <span class="ot">-&gt;</span> b <span class="ot">-&gt;</span> c</code></pre></div>
 <p><code>Op_eq</code> is a constraint synonym, and if we were to expand it and follow it we would find that, like clockwork, it has many little pieces yet it is very, very precise, leading to good type inference even in light of such seemingly abstract nonsense. We will not do that exercise today though, instead we will just read the documentation for <code>eq</code> to understand how it is supposed to be used:</p>
+<div style="font-style:italic">
 <blockquote>
+<p>Documentation for <code>eq :: Op_eq x a b c =&gt; a -&gt; b -&gt; c</code></p>
 <p><code>opaleye-sot</code>’s polymorphic counterpart to <code>opaleye</code>’s <code>.==</code>.</p>
 <p>Mnemonic reminder: EQual.</p>
 <div class="sourceCode"><pre class="sourceCode haskell"><code class="sourceCode haskell"><span class="ot">eq ::</span> <span class="dt">Kol</span>  x <span class="ot">-&gt;</span>                  <span class="dt">Kol</span>  x  <span class="ot">-&gt;</span> <span class="dt">Kol</span>  <span class="dt">PGBool</span>
@@ -759,17 +761,17 @@ q1 <span class="fu">=</span> proc () <span class="ot">-&gt;</span> <span class="
 <p><em>Important</em>: <code>opaleye</code>’s <code>Column</code> is deliberately not supported. Use <code>kol</code> or <code>koln</code> to convert a <code>Column</code> to a <code>Kol</code> or <code>Koln</code> respectively.</p>
 <p><em>Debugging hint</em>: If the combination of <code>a</code> and <code>b</code> that you give to <code>eq</code> is unacceptable, you will get an error from the type-checker saying that an <code>Op2</code> instance is missing. Do not try to add a new instance for <code>Op2</code>, it is an internal class that already supports all the possible combinations of <code>x</code>, <code>a</code>, <code>b</code>, and <code>c</code>. Instead, make sure your are not trying to do something funny such as comparing two <code>Koln</code>s for equality and expecting a <code>Kol</code> as a result (that is, you would be trying to compare two nullable columns and ignoring the possibilty that one of the arguments might be <code>NULL</code>, leading to a <code>NULL</code> result).</p>
 </blockquote>
+</div>
 <p>And then, without going into the details of <code>Op_eq</code>, its documentation sheds some light about its purpose:</p>
+<div style="font-style:italic">
 <blockquote>
+<p>Documentation <code>Op_eq x a b c</code></p>
 <p>Constraints on arguments to <code>eq</code>.</p>
 <p>Given as <code>a</code> and <code>b</code> any combination of <code>Kol x</code>, <code>Koln x</code> or their respective wrappings in <code>Tagged (TC t c)</code>, get <code>c</code> as result, which will be <code>Koln PGBool</code> if there was a <code>Koln x</code> among the given arguments, otherwise it will be <code>Kol PGBool</code>.</p>
-<p>This type synonym is exported for two reasons:</p>
-<ul>
-<li><p>It increases the readability of the type of <code>eq</code> and any type errors resulting from its misuse.</p></li>
-<li><p>If you are taking any of <code>a</code> or <code>b</code> as arguments to a function where <code>eq</code> is used, then you will need to ensure that some constraints are satisfied by those arguments. Adding <code>Op_eq</code> as a constraint to that function will solve the problem.</p></li>
-</ul>
+<p>This type synonym is exported for two reasons: First, it increases the readability of the type of <code>eq</code> and any type errors resulting from its misuse. Second, if you are taking any of <code>a</code> or <code>b</code> as arguments to a function where <code>eq</code> is used, then you will need to ensure that some constraints are satisfied by those arguments. Adding <code>Op_eq</code> as a constraint to that function will solve the problem.</p>
 <p><em>To keep in mind</em>: The type <code>c</code> is fully determined by <code>x</code>, <code>a</code>, and <code>b</code>. This has the practical implication that when both <code>Kol z</code> and <code>Koln z</code> would be suitable types for <code>c</code>, we make a choice and prefer to only support <code>Kol z</code>, leaving you to use <code>koln</code> on the return type if you want to convert it to <code>Koln z</code>. This little inconvenience, however, significantly improves type inference when using <code>eq</code>.</p>
 </blockquote>
+</div>
 <p>Functions like <code>eq</code> are the other big thing that <code>opaleye-sot</code> brings to the <code>opaleye</code> query language. And, as complicated as their implementations might be, the net benefit of <code>eq</code> for the end-user writing a query in the Opaleye query language is huge: it is <em>the single entry point</em> to comparing for equality any any two comparable things, no matter where there are contained; and as many constraints will be required on those comparable things in order to ensure that we don’t accidentally fall into <em>the wrong SQL</em> trap. Of course, highly polymorphic functions like <code>eq</code> wouldn’t be desirable if they were to completely abandon type inference and result in incomprehensible error messages when wrongly used, but with some careful design and experimentation, the implementor of functions like <code>eq</code> can make the proper trade-offs and come up with something that works well in most scenarios while leaving room for some manual calibration of the types in the rare cases when it is needed.</p>
 <p>Just like <code>eq</code> is used for comparing for equality, there are similarly typed functions for comparing for order, logical conjunction and disjunction, etc. Additionally, unary operators like SQL’s <code>NOT</code> can be made to work over a similar range of argument types, and indeed they do in <code>opaleye-sot</code>.</p>
 <h2 id="updating-rows">Updating rows</h2>

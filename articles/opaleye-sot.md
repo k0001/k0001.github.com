@@ -2137,6 +2137,10 @@ precise, leading to good type inference even in light of such seemingly abstract
 nonsense. We will not do that exercise today though, instead we will just read
 the documentation for `eq` to understand how it is supposed to be used:
 
+<div style="font-style:italic">
+
+> Documentation for `eq :: Op_eq x a b c => a -> b -> c`
+>
 > `opaleye-sot`'s polymorphic counterpart to `opaleye`'s `.==`.
 >
 > Mnemonic reminder: EQual.
@@ -2183,9 +2187,15 @@ the documentation for `eq` to understand how it is supposed to be used:
 > columns and ignoring the possibilty that one of the arguments might be
 > `NULL`, leading to a `NULL` result).
 
+</div>
+
 And then, without going into the details of `Op_eq`, its documentation sheds
 some light about its purpose:
 
+<div style="font-style:italic">
+
+> Documentation `Op_eq x a b c`
+>
 > Constraints on arguments to `eq`.
 >
 > Given as `a` and `b` any combination of `Kol x`, `Koln x` or their
@@ -2193,15 +2203,12 @@ some light about its purpose:
 > will be `Koln PGBool` if there was a `Koln x` among the given
 > arguments, otherwise it will be `Kol PGBool`.
 >
-> This type synonym is exported for two reasons:
->
-> * It increases the readability of the type of `eq` and any type errors
->   resulting from its misuse.
->
-> * If you are taking any of `a` or `b` as arguments to a function
->   where `eq` is used, then you will need to ensure that some
->   constraints are satisfied by those arguments. Adding `Op_eq` as a
->   constraint to that function will solve the problem.
+> This type synonym is exported for two reasons: First, it increases the
+> readability of the type of `eq` and any type errors resulting from its misuse.
+> Second, if you are taking any of `a` or `b` as arguments to a function where
+> `eq` is used, then you will need to ensure that some constraints are
+> satisfied by those arguments. Adding `Op_eq` as a constraint to that
+> function will solve the problem.
 >
 > _To keep in mind_: The type `c` is fully determined by `x`, `a`, and `b`. This
 > has the practical implication that when both `Kol z` and `Koln z`
@@ -2209,6 +2216,8 @@ some light about its purpose:
 > `Kol z`, leaving you to use `koln` on the return type if you want to
 > convert it to `Koln z`. This little inconvenience, however, significantly
 > improves type inference when using `eq`.
+
+</div>
 
 Functions like `eq` are the other big thing that `opaleye-sot` brings to the
 `opaleye` query language. And, as complicated as their implementations might be,
