@@ -308,8 +308,7 @@ div.table-wrapper { overflow-x: scroll; }
 
 code, .code
       { font-family: Consolas, "Liberation Mono", Menlo, Courier, monospace;
-        font-size: 1.125rem;
-        line-height: 1.6; }
+        font-size: 1.125rem; }
 code { background: #ede7e0; }
 pre code { background: inherit; }
 

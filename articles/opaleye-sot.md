@@ -4,22 +4,25 @@
 
 <p class="subtitle">SQL in the type system where it belongs</p>
 
-People talk of how solutions fall naturally into place when we program in
+People often talk of how solutions fall naturally into place when we program in
 Haskell and embrace its type system. This article walks us through that process,
 serving as a gentle introduction to some practical uses of advanced features of
 the Haskell type system in GHC within the context of Opaleye and SQL. I invite
 you to continue reading even if you are not particularly interested in Opaleye
 nor SQL, as the approach explained here can be used in other contexts too.
 
-**This is not introductory material to Haskell**, it is instead an
-introduction to practical uses of some of Haskell's advanced type system
-features in GHC. For things here to make sense, the reader is expected to be
-comfortable with concepts like `Functor`, `Monad` , `Arrow` and `Lens`. This is
-a very long article that intends to teach you how to use the GHC type system to
-build resilient software and reason about any problem you might want to tackle
-with it.
+**This is not introductory material to Haskell**. For things here to make sense,
+the reader is expected to be comfortable with concepts like `Functor`, `Monad` ,
+`Arrow` and `Lens` at least. This is a very long article that intends to teach
+you how to use the GHC type system to build resilient software and reason about
+any problem you might want to tackle with it.
 
-_— By Renzo Carbonara. First published in October 2015._
+<div style="margin-left:1em; padding-left:1em; border-left: solid #111 1px;">
+_Text by <a href="../">Renzo Carbonara</a>. First published in October 2015.<br/>
+This work is licensed under a <a rel="license"
+href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution
+4.0 International License</a>._
+</div>
 
 ## The problem
 
@@ -95,7 +98,7 @@ not required. We will cover the topic of preventing _the wrong SQL_, but first
 let us worry about a the simpler topic of boilerplate.
 
 
-## Boilerplate prevention and uniform representations
+## Boilerplate and representations
 
 Opaleye, quite wisely, doesn't force itself into any particular data type for
 the Haskell representation of SQL rows, instead it allows us to pick any
@@ -173,12 +176,16 @@ CREATE TABLE "public"."user"
 
 Notice what is special about those 4 columns regarding the values they can take:
 
+<div class="table-wrapper" style="overflow-x:visible;">
+
 Column            Can contain `NULL`?  Can `DEFAULT` be written to it?
 ----------------  -------------------  -------------------------------
 `id`              No                   Yes
 `name`            No                   No
 `favoriteNumber`  Yes                  Yes
 `age`             Yes                  No
+
+</div>
 
 
 In `opaleye-sot` we distinguish between these combinations explicitly, more so
@@ -187,7 +194,9 @@ than how Opaleye does it out of the box today—although
 We will talk about this in more detail later.
 
 
-## Scenario 1: HsR, Haskell values read from the database
+## Scenario 1: HsR
+
+<p class="subtitle">Haskell values read from the database</p>
 
 This is the simplest scenario. Since we are only concerned about reading from
 the database here, we can safely ignore the question of whether `DEFAULT` can be
@@ -445,7 +454,9 @@ type User_HsR = Record
    ]
 ```
 
-## Scenario 2: Maybe HsR, possibly missing Haskell values read from the database
+## Scenario 2: Maybe HsR
+
+<p class="subtitle">Possibly missing Haskell values read from the database</p>
 
 Even while `User_HsR` is a perfectly acceptable Haskell representation for SQL
 rows coming out of the database, sometimes those rows will be empty, such as in
@@ -455,6 +466,8 @@ User_HsR` will be a perfectly acceptable type within `opaleye-sot`. A variant of
 less practical.
 
 ## Scenario 3: HsI, Haskell values to be inserted to the database
+
+<p class="subtitle">Haskell values to be inserted to the database</p>
 
 In this scenario the types are mostly like those in the HsR scenario, but we
 also want to consider that some columns can take a `DEFAULT` value when being
@@ -668,7 +681,9 @@ code can readily compose with `opaleye` code using `Column`. Hopefully this
 explicit difference will exist in `opaleye` proper soon.
 
 
-## Scenario 4: PgR, PostgreSQL values being read from the database
+## Scenario 4: PgR
+
+<p class="subtitle">PostgreSQL values read in the database</p>
 
 Now that we understand `Kol` and `Koln`, we can proceed to give a Haskell
 representation to the PostgreSQL counterpart of `User_HsR`. We will call it
@@ -693,7 +708,9 @@ query language, it is our Haskell representation of a SQL row that doesn't
 exists in the Haskell runtime but in the PostgreSQL database. `User_PgR` is to
 `User_HsR` what `Kol` is to `Identity` or `Koln` is to `Maybe`.
 
-## Scenario 5: PgRN, possibly missing PostgreSQL values being read from the database
+## Scenario 5: PgRN
+
+<p class="subtitle">Possibly missing PostgreSQL values read in the database</p>
 
 Just like we needed `Maybe User_HsR` to interpret the result of the missing
 right hand side of a `LEFT JOIN` in Haskell, we need something similar for the
@@ -723,7 +740,9 @@ simply flattened the two redundant `Koln` layers into one, which is semantically
 the same. In other words, only columns that were `Kol` in `User_PgR` need to be
 changed to `Koln` in `User_PgRN`, the others remain the same.
 
-## Scenario 6: PgW, PostgreSQL values to be written to the database
+## Scenario 6: PgW
+
+<p class="subtitle">PostgreSQL values to be written to the database</p>
 
 Finally, our last scenario. Just like `User_PgR` was the PostgreSQL counterpart
 to `User_HsR`, `User_PgW` here will be the PostgreSQL counterpart to `User_HsI`,
@@ -2123,14 +2142,14 @@ the documentation for `eq` to understand how it is supposed to be used:
 > Mnemonic reminder: EQual.
 >
 > ```haskell
-> eq :: Kol  x ->                  Kol  x  -> Kol  O.PGBool
-> eq :: Kol  x ->                  Koln x  -> Koln O.PGBool
-> eq :: Kol  x -> Tagged (TC t c) (Kol  x) -> Kol  O.PGBool
-> eq :: Kol  x -> Tagged (TC t c) (Koln x) -> Koln O.PGBool
-> eq :: Koln x ->                  Kol  x  -> Koln O.PGBool
-> eq :: Koln x ->                  Koln x  -> Koln O.PGBool
-> eq :: Koln x -> Tagged (TC t c) (Kol  x) -> Koln O.PGBool
-> eq :: Koln x -> Tagged (TC t c) (Koln x) -> Koln O.PGBool
+> eq :: Kol  x ->                  Kol  x  -> Kol  PGBool
+> eq :: Kol  x ->                  Koln x  -> Koln PGBool
+> eq :: Kol  x -> Tagged (TC t c) (Kol  x) -> Kol  PGBool
+> eq :: Kol  x -> Tagged (TC t c) (Koln x) -> Koln PGBool
+> eq :: Koln x ->                  Kol  x  -> Koln PGBool
+> eq :: Koln x ->                  Koln x  -> Koln PGBool
+> eq :: Koln x -> Tagged (TC t c) (Kol  x) -> Koln PGBool
+> eq :: Koln x -> Tagged (TC t c) (Koln x) -> Koln PGBool
 > ```
 >
 > Any of the above combinations with the arguments fliped is accepted too.
@@ -2326,4 +2345,9 @@ with some additional examples. All of it free and open source.
 
 You can discuss this comment at [reddit]().
 
-_— By Renzo Carbonara. First published in October 2015._
+<div style="margin-left:1em; padding-left:1em; border-left: solid #111 1px;">
+_Text by <a href="../">Renzo Carbonara</a>. First published in October 2015.<br/>
+This work is licensed under a <a rel="license"
+href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution
+4.0 International License</a>._
+</div>
