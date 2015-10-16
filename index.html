@@ -5,15 +5,15 @@
     <title>ren.zone</title>
     <script type="application/javascript">
       window.onload = function() {
-        var a = "re", b = "n@re", c = "n.z", d = "one";
-        document.getElementById("xyz2").textContent = a+b+c+d;
+        var e = document.getElementById("xyz2");
+        e.textContent = e.textContent.replace(/ð/, "@").replace(/ø/, ".");
       };
     </script>
     <link rel="stylesheet" href="style/tufte.css" type="text/css" />
   </head>
   <body>
     <h1>Renzo Carbonara</h1>
-    <p>
+    <p style="width:98%; clear:both;">
       <span class="newthought">I know</span>
       about software and this is my website.
       <br/>
@@ -30,7 +30,7 @@
       <br/>
     </p>
 
-    <p>
+    <p style="width:98%; clear:both;">
       <span class="newthought">I am currently</span> considering new work opportunities.
       <br/>
 
@@ -41,9 +41,9 @@
     </p>
 
 
-    <p>
+    <p style="width:98%; clear:both;">
       <span class="newthought">Contact</span> me by email at
-      <span id="xyz2" style="font-weight:bold;">renÐrenðzone</span>.
+      <span id="xyz2" style="font-weight:bold;">renðrenøzone</span>.
       <br/>
 
       <!-- 4B63 F628 693C 2A99 9996 F742 13A4 7BBC 74BE E4AB -->
