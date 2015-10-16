@@ -1263,21 +1263,20 @@ case. The differences in syntax between open and closed type families are
 minimal. For example, let's convert our `Bar` closed type family from before
 into an open type family.
 
-Closed type family:
+From a closed type family:
 
 ```haskell
---
 type family Bar (x :: *) :: * where
   Bar Int  = Bool
   Bar Char = Double
 ```
 
-A single open type family declaration:
+To a single open type family declaration:
 
 ```haskell
 type family Bar (x :: *) :: *
 ```
-And zero or more open type family instances, possibly defined across different
+And to zero or more open type family instances, possibly defined across different
 modules:
 
 ```haskell
@@ -1294,8 +1293,8 @@ type family Cols (schema :: Symbol) (table :: Symbol)
   :: [Col Symbol WD RN * *]
 ```
 
-With this in place, provided by an hypotetical library, users of this type
-family simply have to provide new instances:
+Assuming `Cols` is being provided by some hypotetical library, users of this
+type family simply have to provide new instances:
 
 ```haskell
 type instance Cols "public" "user"
