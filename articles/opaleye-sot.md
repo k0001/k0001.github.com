@@ -1861,10 +1861,10 @@ single method `unHsR' :: HsR t -> Either SomeException a`. This is mostly so
 that we can treat conversions from any `HsR t` uniformly and that we don't have
 to think of names for these conversions functions, which is very very hard. The
 monomorphic `Either SomeException` wrapper around `a` makes the `Applicative` and
-`Monad`ic composition of `unHsR'` results very practical, a very desirable
-property when trying to combine results from different queries; and of course,
-the `SomeException` is there so that you can be very precise about why
-converting from `HsR User` to `MyUser` failed, for example.
+`Monad`ic composition of `unHsR'` results very practical, a desirable property
+when trying to combine results from different queries; and of course, the
+`SomeException` is there so that you can be very precise about why converting
+from `HsR User` to `MyUser` failed, for example.
 
 As a general recommendation: Remember that as our application evolves `HsR User`
 will probably change, so we should build resilient code here. The best way to do
@@ -1874,8 +1874,8 @@ create an `PersonAgeInYears` type that contains an integer number between 0 and
 whatever the optimal life expectancy is, instead you would just use an
 unsigned integer. If we had favorite colors, for example, and we knew that the
 only acceptable favorite colors within `MyUser` would be red, black or purple,
-then let us check this explicitly when converting from `HsR User` to `MyUser`
-and fail with a precise exception when that is not the case. For example, we may
+then we should check this explicitly when converting from `HsR User` to `MyUser`
+and fail with a precise exception if it is not the case. We may for example
 fail with a `MyUser_BadFavoriteColour` exception, which will be very easy to
 recognize if it ever happens in the future. We have a powerful language at our
 disposal, let's use it wisely.
@@ -1933,8 +1933,8 @@ all the `Tagged (TC t c) a` elements `HsI t` expects, but not necessarily in its
 canonical order. This function `f` is passed as its only argument yet another
 function, here bound to the name `set_`, that will allow us to construct one of those
 `Tagged (TC t c) a` values effectively associating a value `a` to a column
-named `c` in the table uniquely identified by `t`. Perhaps it is easier if you
-think of `set_` just an assignment operator:
+named `c` in the table uniquely identified by `t`. Perhaps this is easier to
+understand if you think of `set_` just an assignment operator:
 
 ```haskell
 mkHsI $ \(:=) -> hBuild
@@ -1945,8 +1945,8 @@ mkHsI $ \(:=) -> hBuild
 ```
 
 This is no magic. What we are seeing here, for the first time, is an usage of
-the type-level names we gave to columns: `C::C "id"` uniquely identifies a
-column named `"id"` in some table at the type-level, and we already knew that we
+the type-level names we gave to columns: `C "id"` uniquely identifies a
+column named `"id"` in some table at the type-level. We already knew that we
 would be using these as sort of references to our columns, so this shouldn't
 come as a surprise. `C` is comparable to the `Proxy`-like types `T` and `TC`
 what we saw before, and it exists for similar reasons and serves related
@@ -1961,11 +1961,11 @@ that the type `TC t c` is isomorphic to `(T t, C c)`. That is, `C c` is “the
 other half” to `T t` which we have seen before. The `set_` function we just saw
 enriches a `C` with knowledge about which table we are talking about, which of
 course `mkHsI` already knows about. That is, it flattens a `T t` and a `C c`
-into a single `TC t c`, which it then uses as a tag for an arbitrary value of
+into a single `TC t c` which it then uses as a tag for an arbitrary value of
 type `a`. For example, if we were trying to build an `HsI User` using `mkHsI`,
 then `set_` would have the following type and implementation:
 
-```
+```haskell
 set_ :: C c -> a -> Tagged (TC User c) a
 set_ _ = Tagged
 ```
@@ -1979,13 +1979,14 @@ It is worth mentioning that writing `C::C` and `T::T`, instead of the more
 _whitespacey_ and traditional `C :: C` and `T :: T` is just a personal syntactic
 preference of mine so as to reduce any accidental whitespace noise. You may
 choose to do otherwise. Maybe this aspect of things will improve
-once the (`TypeApplications`)[https://phabricator.haskell.org/D1138] language
+once the [`TypeApplications`](https://phabricator.haskell.org/D1138) language
 extension lands in GHC.
 
-Now that we have an `HsI User`, all we need is to convert it to a `PgW User` so
-that we can pass it as an argument to `runQuery`. There exists a function called
-`toPgW'` that performs this conversion. And at last, we can now insert a row to
-the `User` table, here from within an example function named `insertUser`:
+Now that we have an `HsI User` all we need is to do is convert it to a `PgW User`
+that we can pass as an argument to `runQuery`; there exists a function called
+`toPgW'` which we can use for such purpose. And now, at last we can insert a
+row to the `User` table, here from within an example function named
+`insertUser`:
 
 ```haskell
 insertUser
@@ -2010,16 +2011,15 @@ that it will happily accept an `HsI t` or any `a` that can be converted to an
 
 `opaleye-sot` encourages you to use exactly the same querying infrastructure as
 `opaleye`, that is, the `Arrow` interface for `QueryArr` or `Query`. We don't
-change anything there, but we do _add_ new features. The first feature we added
-was `queryTisch`, which removes a lot of noise from our queries by allowing us
+change anything there, but we do add new features. The first feature we added
+was `queryTisch`, which removed a lot of noise from our queries by allowing us
 to specify few or no types. The second feature is that, by having a uniform
 representations for all our tables, `opaleye-sot` can provide tools for working
 with them generically: You will learn to use these tools just once, and you will
-carry that knowledge everywhere within the Opaleye query language. A cornerstone
-for these tools is the type `C` which we saw before; we will use `C` every
-time we want to refer to a column in a query. For example, consider the
-following this query that selects all the users whose age equals its favorite
-number:
+carry that knowledge everywhere within the Opaleye query language. Present in
+most of these tools is the type `C` which we saw before; we will use `C` every
+time we want to refer to a column in a query. For example, consider this query
+selecting all the users whose age equals their favorite number:
 
 
 ```haskell
@@ -2043,13 +2043,13 @@ we don't yet understand how the input `eq` expression works, we must acknowledge
 one thing: Comparing two `NULL`able columns like `"age"` and `"favoriteNumber"`
 for equality might result in a `NULL` value in SQL, so `opaleye-sot` forces us
 to deal with that fact. `eq` is a very polymorphic function that works for any
-combination of `Kol` or `Koln` arguments you may apply it to; nevertheless, its
-return type is always fully determined by these input arguments, and it will
-always return `Koln` if there was one among the passed in arguments like in our
-case. So we have `restrict` expecting a `Kol PGBool` and `eq` returning a `Koln
-PGBool`. `nullsFalse` is simply a function that converts the latter to the
-former, transforming each `NULL` value to `FALSE`. After combining all of this,
-we simply return `u`. That is, this query will accomplish the same as the
+combination of `Kol` or `Koln` arguments you may apply it to. Its return type,
+on the other hand, is always fully determined by the input arguments, and it
+will always be `Koln` if there was one among the passed in arguments like in
+our case. So we have `restrict` expecting a `Kol PGBool` and `eq` returning a
+`Koln PGBool`. `nullsFalse` is simply an arrow function that converts the latter
+to the former, transforming each `NULL` value to `FALSE`. After combining all of
+this, we simply return `u`. That is, this query will accomplish the same as the
 following SQL:
 
 ```SQL
@@ -2074,7 +2074,13 @@ completely different and not intended to be compared. By forcing us to
 explicitly ask the compiler for permission to compare across columns we can
 prevent more of _the wrong SQL_. Defining `Comparable` instances is very cheap
 as we only have to specify, in the instance head, the names of the columns we
-want to compare as well as the tables where each of them belongs.
+want to compare as well as the tables where each of them belongs. No instance
+methods need to be defined. Of course, the type-checker will reject instances
+for tables or columns that do not exist, or for columns whose types are
+different. For example, both `Comparable User "age" User "falseColumn"` and
+`Comparable User "age" User "name"` will fail to compile. I won't explain how
+this is achieved here, but you are invited to learn more it about in
+`opaleye-sot`'s source code.
 
 Next we need to pay attention to the expressions `u^.col (C::C "age")` and
 `u^.col (C::C "favoriteNumber")`. We already know that `u` is a `PgR User`, and
