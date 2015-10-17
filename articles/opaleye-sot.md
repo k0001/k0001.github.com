@@ -193,11 +193,11 @@ it exists and that we have to deal with it, which we will do by hiding it under
 a type-safe interface that will prevent this accidental meaning for `DEFAULT`.
 This will force us to say `NULL` if we want to say `NULL`, or to explicitly
 acknowledge, per column, that `DEFAULT` is an acceptable value to write to it
-even when it could mean `NULL`. So, from now on we will ignore the fact that
-`DEFAULT` can be written to any column if done manually from SQL, because from
-within `opaleye-sot`'s DSL `DEFAULT` will only be available if we asked for it.
-With that important assumption in mind, let's proceed to evaluate the table we
-just listed.
+even when it could mean `NULL`, even in columns marked `NOT NULL`. So, from now
+on we will ignore the fact that `DEFAULT` can be written to any column if done
+manually from SQL, because from within `opaleye-sot`'s DSL `DEFAULT` will only
+be available if we asked for it. With that important assumption in mind, let's
+proceed to evaluate the table we just listed.
 
 In `opaleye-sot` we distinguish between the combinations of whether `NULL` and
 `DFAULT` are possible explicitly, even more so than how Opaleye does it out of
