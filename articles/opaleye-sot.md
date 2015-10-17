@@ -2093,7 +2093,7 @@ that `C::C "age"` and `C::C "favoriteNumber"` is what we use to identify two
 columns uniquely identified by those names. There are only two new pieces here:
 `^.` and `col`. The first one, `^.`, comes from Edward Kmett's
 [`lens`](https://hackage.haskell.org/package/lens) library and there's not much
-to say about it that hasn't been said before: given a term `s :: s` and a term
+to say about it that hasn't been said before: Given a term `s :: s` and a term
 `l :: Lens' s a`, then `s ^. l :: a`. In our case, `u` is that `s`, and `col
 (C::C "age")` and `col (C::C "favoriteNumber")` are our `l`s.
 
@@ -2104,10 +2104,10 @@ is something like the following—here simplified and restricted to `HsR t`:
 col :: Tisch t => C c -> Lens' (HsR t) (Tagged (TC t c) a)
 ```
 
-Unfortunately it doesn't show up in this simplified type signature, but `a` is
-fully determined by `t` and `c`: it is the very same `a` that we expect `HsR t`
-to have at the column named `c`. If we recall the type `HsR User` reduces to,
-then we can clearly see what `col` does in practice. Here is `HsR User`:
+It doesn't show up in this simplified type signature, but `a` is fully
+determined by `t` and `c`: It is the very same `a` that we expect `HsR t` to
+have at the column named `c`. If we recall the type `HsR User` reduces to, then
+we can see what `col` does in practice. Here is `HsR User`:
 
 ```haskell
 Tagged
@@ -2122,28 +2122,32 @@ Tagged
 
 And here are the types that `col` can take, simplified:
 
-```
-col (C::C "id") :: Lens' (HsR User) (Tagged (TC User "id") (Kol PGInt4))
+```haskell
+col (C::C "id")
+  :: Lens' (HsR User) (Tagged (TC User "id") (Kol PGInt4))
 ```
 
 ```haskell
-col (C::C "name") :: Lens' (HsR User) (Tagged (TC User "name") (Kol PGText))
+col (C::C "name")
+  :: Lens' (HsR User) (Tagged (TC User "name") (Kol PGText))
 ```
 
 ```haskell
-col (C::C "favoriteNumber") :: Lens' (HsR User) (Tagged (TC User "favoriteNumber") (Koln PGInt4))
+col (C::C "favoriteNumber")
+  :: Lens' (HsR User) (Tagged (TC User "favoriteNumber") (Koln PGInt4))
 ```
 
 ```haskell
-col (C::C "age") :: Lens' (HsR User) (Tagged (TC User "age") (Koln PGInt4))
+col (C::C "age")
+  :: Lens' (HsR User) (Tagged (TC User "age") (Koln PGInt4))
 ```
 
 In reality `col` is not just a `Lens' s a` like we see here, but a full blown
 `Lens s s' a a'` where `s` and `s'` can be any of `HsR t`, `HsI t`, `PgR t`,
 `PgRN t` or `PgW t`, and `a` and `a'` are fully determined by `c` and `s` or
 `s'` respectively. Which means that `col` will be useful in many other scenarios
-too, such as effectively extracting data from an `HsR t` result or updating the
-value in a column.
+such as extracting data from an `HsR t` result or updating the value in a
+column as well.
 
 Now that we know what `nullFalse` does, and that `u^.col (C::C "age")` is of
 type `Tagged (TC User "age") (Koln PGInt4)` and that `u^.col (C::C
@@ -2164,7 +2168,7 @@ eq :: Op_eq x a b c => a -> b -> c
 ```
 
 `Op_eq` is a constraint synonym, and if we were to expand it and follow it we
-would find that, like clockwork, it has many little pieces yet it is very, very
+would find that, like clockwork, it has many little pieces yet it is very
 precise, leading to good type inference even in light of such seemingly abstract
 nonsense. We will not do that exercise today though, instead we will just read
 the documentation for `eq` to understand how it is supposed to be used:
@@ -2191,9 +2195,9 @@ the documentation for `eq` to understand how it is supposed to be used:
 > Any of the above combinations with the arguments fliped is accepted too.
 > Additionally, a `Comparable` constraint will be required if you try to
 > compare two `Tisch`-aware columns directly; that is, a `Kol` or a `Koln`
-> tagged with `TC t c`, such as those obtained with from `col`.
->
-> Simplified example type signatures just so that you get an idea:
+> tagged with `TC t c`, such as those obtained with `col`. Here are some
+> simplified example type signatures of this scenario just so that you get an
+> idea:
 >
 > ```haskell
 > eq :: Comparable t1 c1 t2 c2
@@ -2215,9 +2219,9 @@ the documentation for `eq` to understand how it is supposed to be used:
 > is an internal class that already supports all the possible combinations of
 > `x`, `a`, `b`, and `c`. Instead, make sure your are not trying to do
 > something funny such as comparing two `Koln`s for equality and expecting a
-> `Kol` as a result (that is, you would be trying to compare two nullable
+> `Kol` as a result. That is, you would be trying to compare two nullable
 > columns and ignoring the possibilty that one of the arguments might be
-> `NULL`, leading to a `NULL` result).
+> `NULL`, leading to a `NULL` result.
 
 </div>
 
@@ -2254,7 +2258,7 @@ some light about its purpose:
 Functions like `eq` are the other big thing that `opaleye-sot` brings to the
 `opaleye` query language. And, as complicated as their implementations might be,
 the net benefit of `eq` for the end-user writing a query in the Opaleye query
-language is huge: it is _the single entry point_ to comparing for equality any
+language is huge: It is _the single entry point_ to comparing for equality any
 any two comparable things, no matter where there are contained; and as many
 constraints will be required on those comparable things in order to ensure that
 we don't accidentally fall into _the wrong SQL_ trap. Of course, highly
@@ -2263,12 +2267,14 @@ abandon type inference and result in incomprehensible error messages when
 wrongly used, but with some careful design and experimentation, the implementor
 of functions like `eq` can make the proper trade-offs and come up with something
 that works well in most scenarios while leaving room for some manual calibration
-of the types in the rare cases when it is needed.
+of the types in the rare cases when it is needed. In our case, the
+implementation of `eq` and similar functions relies on the
+`FunctionalDependencies` language extension to achieve this.
 
 Just like `eq` is used for comparing for equality, there are similarly typed
 functions for comparing for order, logical conjunction and disjunction, etc.
-Additionally, unary operators like SQL's `NOT` can be made to work over a
-similar range of argument types, and indeed they do in `opaleye-sot`.
+Additionally, unary operators like SQL's `NOT` are upgraded to work over a
+similar range of argument types in `opaleye-sot`.
 
 ## Updating rows
 
@@ -2296,18 +2302,18 @@ will be of type `PgR User -> PgW User` when specialized to our particular use
 case: What is the difference between `PgR User` and `PgW User`? As we saw
 before, the only difference is that the columns that can take a `DEFAULT` value
 when being written need to be wrapped in `WDef`. The practical implication of
-such difference in the types is that, even if we just wanted update single value
-in a single column in the `User` table, we would still need to manually add wrap
-all the columns that can take a `DEFAULT` value in `WDef`. “Manually”, a word by
+such difference in the types is that even if we just wanted update single value
+in a single column in the `User` table, we would still need to manually wrap
+all the columns that can take a `DEFAULT` value in `WDef`. _Manually_, a word by
 now we abhor, even more so when we know that this process is entirely
 mechanical. But similarly to how we demonstrated that it was possible to go from
 `HsI t` to `PgW t` by means of `toPgW'`, it is also possible to go from `PgR t`
-to `PgW t` by means of `update'`, so ideally we would just precompose `update'`
-to a function of type `w -> w` (or `PgW User -> PgW User` in our case) that only
-worries about updating the columns that will change. Knowing that this is such a
-common scenario, `opaleye-sot` exports a function `runUpdateTisch` specially
-designed to work with `Tisch` instances, which we will use instead of
-`runUpdate`—its type here simplified for our explanatory purposes:
+to `PgW t` by means of `update'`, so we could just precompose `update'` with a
+function of type `PgW t -> PgW t` that only worries about updating the columns
+that will change. Knowing that this is such a common scenario, `opaleye-sot`
+exports a function `runUpdateTisch` specially designed to work with `Tisch`
+instances, which we will use instead of `runUpdate`—its type here simplified for
+our explanatory purposes:
 
 ```haskell
 runUpdateTisch
@@ -2338,24 +2344,25 @@ UPDATE "public"."user"
 
 Of course, I'm being optimistic and assuming I am the only Renzo in the
 database, but hopefully you get the idea. The first function that we passed to
-`runUpdate` changes the values in the columns of the row as needed; in our case
-updating the `"favoriteNumber"` field as planed using the
+`runUpdate` changes the values in the columns of the row as needed, in our case
+updating the `"favoriteNumber"` column as planed using the
 [`set`](https://hackage.haskell.org/package/lens-4.13/docs/Control-Lens-Setter.html#v:set)
 function from the `lens` library. The other function we passed is the boolean
 predicate where we select which columns we want to update—notice how we used
 `eq` again here. The only new thing here is `cola`, which behaves just like the
 `col` lens we saw before, except it removes the `Tagged (TC t c)` wrapper around
-the value in the representation for the column that `col` otherwise keeps.
+the value in the representation for the column that `col` would otherwise keep.
 
 ##  Conclusion
 
 This is our stop. We have learned how `opaleye-sot` befriends the Haskell type
-system to keep us safe and free from boilerplate. We have learned how to reduce
-a problem to its essentials. We have seen how it is possible to clean up a
-public API so that it covers as many scenarios as possible while staying correct
-and predictable. We have learned how to help users accomplish their goals with
-as little friction and as much safety as possible. We have given a practical
-perspective to advanced type feature systems. Have we saved a billion dollars too?
+system to keep us safe and free from boilerplate, we learned how to reduce a
+problem to its essentials, we have seen how it is possible to clean up a public
+API so that it covers as many scenarios as possible while staying correct and
+predictable, we learned how to help users accomplish their goals with as little
+friction and as much safety as possible, we have given a practical perspective
+to advanced type feature systems, and maybe we have saved the next billion
+dollars as well.
 
 We did embrace Opaleye and the generation of well-formed and _not wrong_ SQL as
 our scenario, but it is important to realize that these techniques are still
@@ -2377,7 +2384,7 @@ and perhaps a way of checking at runtime that the `Tisch` you compiled has the
 expected shape in the database. So in a sense, this article is an invitation for
 you to contribute to `opaleye-sot`, even if just by asking for some feature to
 exist or some documentation to improve. `opaleye-sot` will be on Hackage once it
-can be considered “production ready”. Meanwhile, I invite you to go and explore
+can be considered _production ready_. Meanwhile, I invite you to go and explore
 its [source code](https://github.com/k0001/opaleye-sot), as well its
 [documentation](). In the source code you will find a tutorial in the works too,
 with some additional examples. All of it free and open source.
