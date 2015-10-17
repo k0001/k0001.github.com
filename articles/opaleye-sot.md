@@ -1986,11 +1986,11 @@ choose to do otherwise. Maybe this aspect of things will improve
 once the [`TypeApplications`](https://phabricator.haskell.org/D1138) language
 extension lands in GHC.
 
-Now that we have an `HsI User` all we need is to do is convert it to a `PgW User`
-that we can pass as an argument to `runQuery`; there exists a function called
-`toPgW'` which we can use for such purpose. And now, at last we can insert a
-row to the `User` table, here from within an example function named
-`insertUser`:
+Now that we have an `HsI User` all we need is to do is convert it to a `PgW
+User` that we can pass as an argument to `runQuery`, which we can do with a
+function called `toPgW'` exported by `opaleye-sot` for such purpose. And now, at
+last we can insert a row into the `User` table, here from within an example
+function named `insertUser`:
 
 ```haskell
 insertUser
@@ -2000,7 +2000,8 @@ insertUser
   -> Maybe Int32         -- ^ User age.
   -> IO Int64
 insertUser conn name favNum age =
-   runInsert conn (table (T::T User)) (toPgW' (toHsI_User name favNum age))
+   runInsert conn (table (T::T User))
+      (toPgW' (toHsI_User name favNum age))
 ```
 
 One last thing: Just like we had the `UnHsR` typeclass saving us from the need
@@ -2020,10 +2021,10 @@ was `queryTisch`, which removed a lot of noise from our queries by allowing us
 to specify few or no types. The second feature is that, by having a uniform
 representations for all our tables, `opaleye-sot` can provide tools for working
 with them generically: You will learn to use these tools just once, and you will
-carry that knowledge everywhere within the Opaleye query language. Present in
-most of these tools is the type `C` which we saw before; we will use `C` every
-time we want to refer to a column in a query. For example, consider this query
-selecting all the users whose age equals their favorite number:
+carry that knowledge everywhere within the composable Opaleye query language.
+Present in most of these tools is `C` which we saw before; we will use `C`
+every time we want to refer to a column in a query. For example, consider this
+query selecting all the users whose age equals their favorite number:
 
 
 ```haskell
@@ -2052,9 +2053,9 @@ on the other hand, is always fully determined by the input arguments, and it
 will always be `Koln` if there was one among the passed in arguments like in
 our case. So we have `restrict` expecting a `Kol PGBool` and `eq` returning a
 `Koln PGBool`. `nullsFalse` is simply an arrow function that converts the latter
-to the former, transforming each `NULL` value to `FALSE`. After combining all of
-this, we simply return `u`. That is, this query will accomplish the same as the
-following SQL:
+to the former, transforming a possible `NULL` value to `FALSE`. After combining
+all of this, we simply return `u`. That is, this query will accomplish the same
+as the following SQL:
 
 ```SQL
 SELECT "id", "name", "favoriteNumber", "age"
