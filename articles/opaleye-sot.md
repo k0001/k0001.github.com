@@ -2381,13 +2381,13 @@ currently present in `opaleye-sot` are the ones I have happened to need and have
 had time to complete. But of course, there are a lot of things missing such as
 more binary operators, support for composite columns, a story for aggregation
 and perhaps a way of checking at runtime that the `Tisch` you compiled has the
-expected shape in the database. So in a sense, this article is an invitation for
-you to contribute to `opaleye-sot`, even if just by asking for some feature to
-exist or some documentation to improve. `opaleye-sot` will be on Hackage once it
-can be considered _production ready_. Meanwhile, I invite you to go and explore
-its [source code](https://github.com/k0001/opaleye-sot), as well its
-[documentation](). In the source code you will find a tutorial in the works too,
-with some additional examples. All of it free and open source.
+expected shape in the database. So in a sense, this article is also an
+invitation for you to contribute to `opaleye-sot`, even if just by asking for
+some feature to exist or some documentation to improve. `opaleye-sot` will be on
+Hackage once it can be considered _production ready_. Meanwhile, I invite you to
+go and explore its [source code](https://github.com/k0001/opaleye-sot), as well
+its [documentation](). In the source code you will find a tutorial in the works
+too, with some additional examples. All of it free and open source.
 
 ## Discussion
 
