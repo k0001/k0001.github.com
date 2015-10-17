@@ -196,24 +196,28 @@ acknowledge, per column, that `DEFAULT` is an acceptable value to write to it
 even when it could mean `NULL`, even in columns marked `NOT NULL`. So, from now
 on we will ignore the fact that `DEFAULT` can be written to any column if done
 manually from SQL, because from within `opaleye-sot`'s DSL `DEFAULT` will only
-be available if we asked for it. With that important assumption in mind, let's
-proceed to evaluate the table we just listed.
+be available if we asked for it. This situation, as unfortunate as it might be,
+serves as a good example as what software many times is: Layers of abstraction
+over layers of abstraction, where each layer fixes some problems found in the
+layer below, allowing upper layers to be oblivious of it. Haskell, with its
+precise type system and functional nature, can do a great job in such scenarios.
 
-In `opaleye-sot` we distinguish between the combinations of whether `NULL` and
-`DFAULT` are possible explicitly, even more so than how Opaleye does it out of
-the box today—although
+In `opaleye-sot` we will also explicitly distinguish between the combinations of
+whether `NULL` and `DFAULT` are possible, even more so than how Opaleye does it
+out of the box today—although
 [there are plans to improve this](https://github.com/tomjaguarpaw/haskell-opaleye/issues/97).
-We will talk about this in more detail later.
+We will now talk about this in more detail as we try to understand all the
+different Opaleye scenarios in which we will be working.
 
 
 ## Scenario 1: HsR
 
 <p class="subtitle">Haskell values read from the database</p>
 
-This is the simplest scenario. Since we are only concerned about reading from
-the database here, we can safely ignore the question of whether `DEFAULT` can be
-written to each particular column. We must worry about whether the column can
-contain `NULL`, however. We will represent that possibility as `Maybe`.
+Since we are only concerned about reading from the database here, we can safely
+ignore the question of whether `DEFAULT` can be written to each particular
+column. We must worry about whether the column can contain `NULL`, however. We
+will represent that possibility as `Maybe`.
 
 Ignoring `HList` and Opaleye for a moment, we might opt for a
 representation like the following one. To prevent any confusion with forthcoming
@@ -277,7 +281,7 @@ data User_HsR2 = User_HsR2
   { _user_HsR2_id             :: Int32
   , _user_HsR2_name           :: Text
   , _user_HsR2_age            :: Maybe Int32
-  , _user_HsR2_favoriteNumber :: Maybe Int32a SQL row,
+  , _user_HsR2_favoriteNumber :: Maybe Int32
   }
 ```
 
