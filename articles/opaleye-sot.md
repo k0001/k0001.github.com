@@ -11,11 +11,13 @@ the Haskell type system within the context of Opaleye and SQL. I invite you to
 continue reading even if you are not particularly interested in Opaleye nor SQL,
 as the approach explained here can be used in other contexts too.
 
-**This is not introductory material to Haskell**. For things here to make sense,
-the reader is expected to be comfortable with concepts like `Functor`, `Monad` ,
-`Arrow` and `Lens` at least. This is a very long article that intends to teach
+**This is not introductory material to Haskell**. For things here to truly make
+sense, you are expected to be comfortable with concepts like `Functor`, `Monad`
+, `Arrow` and `Lens` at least. This is a very long article that intends to teach
 you how to use the GHC type system to build resilient software and reason about
-any problem you might want to tackle with it.
+any problem you might want to tackle with it. Nevertheless, even if you don't
+particularly understand the technical details, you should be able to follow the
+reasoning process and appreciate the practical results.
 
 
 ## The problem
@@ -137,9 +139,9 @@ of different types.
 
 ```
 > -- This doesn't typecheck:
-> True : 42 : [] :: [Bool, Int]
+> (:) True ((:) 42 []) :: [Bool, Int]
 > -- This does typecheck:
-> True `HCons` 42 `HCons` HNil :: HList '[Bool, Int]
+> HCons True (HCons 42 HNil) :: HList '[Bool, Int]
 ```
 
 `HList` has some properties that are very interesting to us. To start with, not
@@ -1246,13 +1248,13 @@ we want to be able to work with all of them in a uniform and lightweight
 manner. Accomplishing all of this will be our goal.
 
 In PostgreSQL each table can be uniquely identified by its name and the name of
-the schema it belongs to. These are just strings, and we already know that strings
-can exists at the type-level in the form of `Symbol`. For our `user` table we
-can say that `"user" :: Symbol` is its name, and that `"public" :: Symbol` is
-the name of its schema. With this in mind we can restrict the type-level list of
-`Col`s from before so that it is tied to this particular `user` table and not to
-any other table that might share its shape. As before, we accomplish this by
-simply tagging our list with additional information:
+the schema it belongs to. These are just strings, and we already know that
+strings can exists at the type-level in the form of `Symbol`. For our `user`
+table we can say that `"user" :: Symbol` is its name, and that `"public" ::
+Symbol` is the name of its schema. With this in mind we can restrict the
+type-level list of `Col`s from before so that it is tied to this particular
+`user` table and not to any other table that might share its shape. As before,
+we accomplish this by simply tagging our list with additional information:
 
 ```haskell
 Tagged '("public", "user")
@@ -1318,12 +1320,12 @@ Assuming `Cols` is being provided by some hypotetical library, users of this typ
 family simply have to provide new instances for it:
 
 ```haskell
-type instance Cols "public" "user"
-  = [ 'Col "id" 'WD 'R PGInt4 Int32
-    , 'Col "name" 'W 'R PGText Text
-    , 'Col "favoriteNumber" 'WD 'RN PGInt4 Int32
-    , 'Col "age" 'W 'RN PGInt4 Int32
-    ]
+type instance Cols "public" "user" =
+  '[ 'Col "id" 'WD 'R PGInt4 Int32
+   , 'Col "name" 'W 'R PGText Text
+   , 'Col "favoriteNumber" 'WD 'RN PGInt4 Int32
+   , 'Col "age" 'W 'RN PGInt4 Int32
+   ]
 ```
 
 And if there also existed a type-level function like the `TaggedCols` below,
@@ -1337,12 +1339,12 @@ type TaggedCols (schema :: Symbol) (table :: Symbol)
 However, this is still unsatisfactory. The problem is that maybe in our codebase
 we happen to need to interact with two or more different databases at the same
 time, where two or more of them might have tables named `"user"` in a schema
-named `"public"` with shapes different from the one we just laid out. However, our
-current approach with `Cols` requires that there exists only one combination of
-schema name and table name. In order to fix this, `Cols` needs to take a third
-type parameter that uniquely identifies the database where the table exists.
-We are not interested in what this type is, we are only interested in the
-meaning we decide to give to its role: This type parameter will be used as a
+named `"public"` with shapes different from the one we just laid out. However,
+our current approach with `Cols` requires that there exists only one combination
+of schema name and table name. In order to fix this, `Cols` needs to take a
+third type parameter that uniquely identifies the database where the table
+exists. We are not interested in what this type is, we are only interested in
+the meaning we decide to give to its role: This type parameter will be used as a
 unique identifier for a database, and as long as it is equal to another type
 used in a similar way we will say that we are talking about a same database,
 otherwise we will say that we are talking about different ones. It is up to the
@@ -1363,12 +1365,12 @@ And then an instance for one database could look like this:
 -- identifier.
 data Db1
 
-type instance Cols Db1 "public" "user"
-  = [ 'Col "id" 'WD 'R PGInt4 Int32
-    , 'Col "name" 'W 'R PGText Text
-    , 'Col "favoriteNumber" 'WD 'RN PGInt4 Int32
-    , 'Col "age" 'W 'RN PGInt4 Int32
-    ]
+type instance Cols Db1 "public" "user" =
+  '[ 'Col "id" 'WD 'R PGInt4 Int32
+   , 'Col "name" 'W 'R PGText Text
+   , 'Col "favoriteNumber" 'WD 'RN PGInt4 Int32
+   , 'Col "age" 'W 'RN PGInt4 Int32
+   ]
 ```
 
 And for another database something like this:
@@ -1431,7 +1433,7 @@ instance Qux Int where
 
 ```haskell
 instance Qux Char where
-  type Bar Int = Double
+  type Bar Char = Double
 ```
 
 This new `Bar` still has the kind `* -> *`, and it is defined for every `x` that
@@ -1464,9 +1466,11 @@ on.
 
 
 ```haskell
-class ITisch database schemaName tableName
-   => Tisch (database :: k) (schemaName :: Symbol) (tableName :: Symbol) where
-  type Cols database schemaName tableName :: [Col Symbol WD RN * *]
+class ITisch d s t
+   => Tisch (database :: k) (schemaName :: Symbol) (tableName :: Symbol)
+ where
+   type Cols database schemaName tableName
+     :: [Col Symbol WD RN * *]
 ```
 
 We will not pay attention at all to the internals of the `ITisch` superclass; as
@@ -1509,11 +1513,11 @@ instance Tisch User where
   type Database User = Db1
   type TableName User = "user"
   type Cols User =
-    [ 'Col "id" 'WD 'R PGInt4 Int32
-    , 'Col "name" 'W 'R PGText Text
-    , 'Col "favoriteNumber" 'WD 'RN PGInt4 Int32
-    , 'Col "age" 'W 'RN PGInt4 Int32
-    ]
+    '[ 'Col "id" 'WD 'R PGInt4 Int32
+     , 'Col "name" 'W 'R PGText Text
+     , 'Col "favoriteNumber" 'WD 'RN PGInt4 Int32
+     , 'Col "age" 'W 'RN PGInt4 Int32
+     ]
 ```
 
 The `Tisch` described here is exactly the same `Tisch` that you will find today
@@ -1724,7 +1728,7 @@ function that given a `t` that is an instance of `Tisch`, it returns a `Table
 (PgW t) (PgR t)`. In other words, we want to implement this:
 
 ```haskell
-table :: Tisch t => T t -> Table (PgW t) (PgR t)
+table :: T t -> Table (PgW t) (PgR t)
 ```
 
 We could have used `Proxy` instead of `T` to pass around the type `t`, but as we
@@ -1755,8 +1759,7 @@ queryUsersTable = queryTable (table (T::T User))
 Or, assuming we had another table described by `Tisch Drawing` that for some
 users provided details about their drawings, we could even use `table` to do a
 left join between them, using
-[`leftJoin`](https://hackage.haskell.org/package/opaleye-0.4.2.0/docs/Opaleye-Join.html#v:leftJoin)
-from `opaleye`:
+the `leftJoin` exported from `opaleye-sot`, which is basically `opaleye`'s [`leftJoin`](https://hackage.haskell.org/package/opaleye-0.4.2.0/docs/Opaleye-Join.html#v:leftJoin) made compatible with `Kol`:
 
 ```haskell
 queryUsersAndDrawings :: QueryArr () (PgR User, PgRN Drawing)
@@ -1924,7 +1927,7 @@ toHsI_User
   -> WDef (Maybe Int32)  -- ^ Favorite number.
   -> Maybe Int32         -- ^ Age.
   -> HsI User
-toHsI_User name favNum age =
+toHsI_User name favoriteNumber age =
    mkHsI $ \set_ -> hBuild
       (set_ (C::C "id") WDef)
       (set_ (C::C "name") name)
@@ -1938,14 +1941,14 @@ canonical order. This function `f` is passed as its only argument yet another
 function, here bound to the name `set_`, that will allow us to construct one of those
 `Tagged (TC t c) a` values effectively associating a value `a` to a column
 named `c` in the table uniquely identified by `t`. Perhaps this is easier to
-understand if you think of `set_` just an assignment operator:
+understand if you think of `set_` just an assignment operator, here named `.=`:
 
 ```haskell
-mkHsI $ \(:=) -> hBuild
-   ((C::C "id")             := WDef)
-   ((C::C "name")           := name)
-   ((C::C "favoriteNumber") := favoriteNumber)
-   ((C::C "age")            := age)
+mkHsI $ \(.=) -> hBuild
+   ((C::C "id")             .= WDef)
+   ((C::C "name")           .= name)
+   ((C::C "favoriteNumber") .= favoriteNumber)
+   ((C::C "age")            .= age)
 ```
 
 This is no magic. What we are seeing here, for the first time, is an usage of
@@ -1965,9 +1968,9 @@ that the type `TC t c` is isomorphic to `(T t, C c)`. That is, `C c` is “the
 other half” to `T t` which we have seen before. The `set_` function we just saw
 enriches a `C` with knowledge about which table we are talking about, which of
 course `mkHsI` already knows about. That is, it flattens a `T t` and a `C c`
-into a single `TC t c` which it then uses as a tag for an arbitrary value of
-type `a`. For example, if we were trying to build an `HsI User` using `mkHsI`,
-then `set_` would have the following type and implementation:
+into a single `TC t c` which it then uses to tag a value of type `a`. For
+example, if we were trying to build an `HsI User` using `mkHsI`, then `set_`
+would have the following type and implementation:
 
 ```haskell
 set_ :: C c -> a -> Tagged (TC User c) a
@@ -2000,7 +2003,7 @@ insertUser
   -> Maybe Int32         -- ^ User age.
   -> IO Int64
 insertUser conn name favNum age =
-   runInsert conn (table (T::T User))
+   runInsert conn table'
       (toPgW' (toHsI_User name favNum age))
 ```
 
@@ -2031,16 +2034,16 @@ query selecting all the users whose age equals their favorite number:
 q1 :: Query (PgR User)
 q1 = proc () -> do
    u <- queryTisch' -< ()
-   restrict <<< nullsFalse -< eq
+   restrict <<< nullFalse -< eq
       (u^.col (C::C "age"))
       (u^.col (C::C "favoriteNumber"))
-   id -< u
+   returnA -< u
 ```
 
 So much happened there. Let's walk step by step. First, by giving a type to this
 query we allowed `queryTisch'` to infer its return type. That is, the
 type-inferer knows that within this query `u` must be of type `PgR User`.
-Second, we see this strange `restrict <<< nullsFalse` thing: the `restrict` here
+Second, we see this strange `restrict <<< nullFalse` thing: the `restrict` here
 is the one exported from `opaleye-sot`, which is just like the `restrict` from
 `opaleye` except it works on `Kol PGBool` instead of `Column PGBool` for the
 reasons we explained before when we talked about `Kol` and `Koln`. Now, even if
@@ -2052,7 +2055,7 @@ combination of `Kol` or `Koln` arguments you may apply it to. Its return type,
 on the other hand, is always fully determined by the input arguments, and it
 will always be `Koln` if there was one among the passed in arguments like in
 our case. So we have `restrict` expecting a `Kol PGBool` and `eq` returning a
-`Koln PGBool`. `nullsFalse` is simply an arrow function that converts the latter
+`Koln PGBool`. `nullFalse` is simply an arrow function that converts the latter
 to the former, transforming a possible `NULL` value to `FALSE`. After combining
 all of this, we simply return `u`. That is, this query will accomplish the same
 as the following SQL:
@@ -2065,8 +2068,9 @@ SELECT "id", "name", "favoriteNumber", "age"
    AND "age" = "favoriteNumber"
 ```
 
-If you try to compile this query, however, it will fail to do so; you will get a
-type-checker error saying that the following instance is missing:
+Of course the SQL generated by Opaleye will be uglier, but we are not here for
+the looks. If we try to compile this query, however, we will fail; we will get
+a type-checker error saying that the following instance is missing:
 
 ```haskell
 instance Comparable User "age" User "favoriteNumber"
@@ -2083,13 +2087,13 @@ want to compare as well as the tables where each of them belongs. No instance
 methods need to be defined. Of course, the type-checker will reject instances
 for tables or columns that do not exist, or for columns whose types are
 different. For example, both `Comparable User "age" User "falseColumn"` and
-`Comparable User "age" User "name"` will fail to compile. I won't explain how
-this is achieved here, but you are invited to learn more it about in
+`Comparable User "age" User "name"` will fail to compile. I won't explain here
+how this is achieved, but you are invited to learn more it about in
 `opaleye-sot`'s source code.
 
 Next we need to pay attention to the expressions `u^.col (C::C "age")` and
 `u^.col (C::C "favoriteNumber")`. We already know that `u` is a `PgR User`, and
-that `C::C "age"` and `C::C "favoriteNumber"` is what we use to identify two
+that `C::C "age"` and `C::C "favoriteNumber"` is what we use to reference two
 columns uniquely identified by those names. There are only two new pieces here:
 `^.` and `col`. The first one, `^.`, comes from Edward Kmett's
 [`lens`](https://hackage.haskell.org/package/lens) library and there's not much
@@ -2101,13 +2105,13 @@ What is `col` then? It is just a `Lens` to the value of a column, and its type
 is something like the following—here simplified and restricted to `HsR t`:
 
 ```haskell
-col :: Tisch t => C c -> Lens' (HsR t) (Tagged (TC t c) a)
+col :: C c -> Lens' (HsR t) (Tagged (TC t c) a)
 ```
 
 It doesn't show up in this simplified type signature, but `a` is fully
-determined by `t` and `c`: It is the very same `a` that we expect `HsR t` to
-have at the column named `c`. If we recall the type `HsR User` reduces to, then
-we can see what `col` does in practice. Here is `HsR User`:
+determined by `t` and `c`: It is the very same `a` that we expect `PgR t` to
+have at the column named `c`. If we recall the type `PgR User` reduces to, then
+we can see what `col` does in practice. Here is `PgR User`:
 
 ```haskell
 Tagged
@@ -2124,22 +2128,22 @@ And here are the types that `col` can take, simplified:
 
 ```haskell
 col (C::C "id")
-  :: Lens' (HsR User) (Tagged (TC User "id") (Kol PGInt4))
+  :: Lens' (PgR User) (Tagged (TC User "id") (Kol PGInt4))
 ```
 
 ```haskell
 col (C::C "name")
-  :: Lens' (HsR User) (Tagged (TC User "name") (Kol PGText))
+  :: Lens' (PgR User) (Tagged (TC User "name") (Kol PGText))
 ```
 
 ```haskell
 col (C::C "favoriteNumber")
-  :: Lens' (HsR User) (Tagged (TC User "favoriteNumber") (Koln PGInt4))
+  :: Lens' (PgR User) (Tagged (TC User "favoriteNumber") (Koln PGInt4))
 ```
 
 ```haskell
 col (C::C "age")
-  :: Lens' (HsR User) (Tagged (TC User "age") (Koln PGInt4))
+  :: Lens' (PgR User) (Tagged (TC User "age") (Koln PGInt4))
 ```
 
 In reality `col` is not just a `Lens' s a` like we see here, but a full blown
@@ -2264,7 +2268,7 @@ constraints will be required on those comparable things in order to ensure that
 we don't accidentally fall into _the wrong SQL_ trap. Of course, highly
 polymorphic functions like `eq` wouldn't be desirable if they were to completely
 abandon type inference and result in incomprehensible error messages when
-wrongly used, but with some careful design and experimentation, the implementor
+used wrong, but with some careful design and experimentation, the implementor
 of functions like `eq` can make the proper trade-offs and come up with something
 that works well in most scenarios while leaving room for some manual calibration
 of the types in the rare cases when it is needed. In our case, the
@@ -2274,7 +2278,10 @@ implementation of `eq` and similar functions relies on the
 Just like `eq` is used for comparing for equality, there are similarly typed
 functions for comparing for order, logical conjunction and disjunction, etc.
 Additionally, unary operators like SQL's `NOT` are upgraded to work over a
-similar range of argument types in `opaleye-sot`.
+similar range of argument types in `opaleye-sot`. In general, any unary or
+binary function operating on `Column` can be upgraded to be as polymorphic as
+`eq` using some combination of `op1`, `op2`, `liftKol1`, `liftKol2`, and other
+similar functions exported by `opaleye-sot`.
 
 ## Updating rows
 
@@ -2330,8 +2337,10 @@ table:
 
 ```haskell
 runUpdateTisch conn (T::T User)
-  (\u -> set (cola (C::C "favoriteNumber")) (u^.cola (C::C "age")) u)
-  (\u -> eq (kol "Renzo") (u^.cola (C::C "name")))
+  (\u -> set (cola (C::C "favoriteNumber"))
+             (WVal (u^.cola (C::C "age"))) u)
+  (\u -> eq (kol ("Renzo" :: Text))
+            (u^.cola (C::C "name")))
 ```
 
 This code will generate an SQL comparable to this
@@ -2365,12 +2374,12 @@ to advanced type feature systems, and maybe we have saved the next billion
 dollars as well.
 
 We did embrace Opaleye and the generation of well-formed and _not wrong_ SQL as
-our scenario, but it is important to realize that these techniques are still
-applicable in other scenarios. It is up to you, as someone who understands the
-problem at hand, to try and teach the type system as much as you can about that
-problem. And even if you don't yet understand the problem: Talk to the type
-system about it; it will help you understand. Remember, the type system is not
-magic, it is a logical reasoning tool.
+our scenario, but it is important to realize that these techniques and
+approaches are still applicable in other scenarios. It is up to us, as people
+who understand a problem at hand, to try and teach the type system as much as
+we can about that problem. And even if we don't yet understand the problem:
+Let's talk to the type system about it; it will help us understand. Remember,
+the type system is not magic, it is a logical reasoning tool.
 
 
 ## Is it on Hackage yet?
@@ -2387,14 +2396,15 @@ some feature to exist or some documentation to improve. `opaleye-sot` will be on
 Hackage once it can be considered _production ready_. Meanwhile, I invite you to
 go and explore its [source code](https://github.com/k0001/opaleye-sot), as well
 its [documentation](). In the source code you will find a tutorial in the works
-too, with some additional examples. All of it free and open source.
+too, with some additional examples. All of it free and open source as you would
+justifiably expect.
 
 ## Discussion
 
 You can discuss this comment at [reddit]().
 
 <div style="margin-left:1em; padding-left:1em; border-left: solid #111 1px;">
-_Text by <a href="../">Renzo Carbonara</a>. First published in October 2015.<br/>
+_By <a href="../">Renzo Carbonara</a>. First published in October 2015.<br/>
 This work is licensed under a <a rel="license"
 href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution
 4.0 International License</a>._
