@@ -2365,22 +2365,24 @@ the value in the representation for the column that `col` would otherwise keep.
 
 ##  Conclusion
 
-This is our stop. We have learned how `opaleye-sot` befriends the Haskell type
-system to keep us safe and free from boilerplate, we learned how to reduce a
-problem to its essentials, we have seen how it is possible to clean up a public
-API so that it covers as many scenarios as possible while staying correct and
-predictable, we learned how to help users accomplish their goals with as little
-friction and as much safety as possible, we have given a practical perspective
-to advanced type feature systems, and maybe we have saved the next billion
-dollars as well.
+This is our stop. We learned how `opaleye-sot` befriends the Haskell type system
+to keep us safe and free from boilerplate, we learned how to reduce a problem to
+its essentials, we saw how it is possible to clean up a public API so that it
+covers as many scenarios as possible while staying correct and predictable, we
+learned how to help users accomplish their goals with as little friction and as
+much safety as possible, we gave a practical perspective to advanced type
+feature systems, we put lenses in the query language, and by putting `Maybe`
+there as well we may have saved the next billion dollars. And even if you didn't
+like some of the solutions, now you know what is possible and you may try your
+own approach.
 
-We did embrace Opaleye and the generation of well-formed and _not wrong_ SQL as
+We did embrace Opaleye and the generation of well-formed and _not wrong SQL_ as
 our scenario, but it is important to realize that these techniques and
-approaches are still applicable in other scenarios. It is up to us, as people
-who understand a problem at hand, to try and teach the type system as much as
-we can about that problem. And even if we don't yet understand the problem:
-Let's talk to the type system about it; it will help us understand. Remember,
-the type system is not magic, it is a logical reasoning tool.
+approaches are still applicable to other problems. It is up to us, as people who
+understand a problem at hand, to try and teach the type system as much as we can
+about that problem. And when we don't understand the problem, talking to the
+type system about it will help us understand. Remember, the type system is not
+magic, it is a logical reasoning tool.
 
 
 ## Is it on Hackage yet?
