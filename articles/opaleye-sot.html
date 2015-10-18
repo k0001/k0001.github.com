@@ -1,11 +1,14 @@
-<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
-<html xmlns="http://www.w3.org/1999/xhtml">
+<!DOCTYPE html>
+<html>
 <head>
-  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
-  <meta http-equiv="Content-Style-Type" content="text/css" />
-  <meta name="generator" content="pandoc" />
+  <meta charset="utf-8">
+  <meta name="generator" content="pandoc">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
   <title></title>
   <style type="text/css">code{white-space: pre;}</style>
+  <!--[if lt IE 9]>
+    <script src="http://html5shim.googlecode.com/svn/trunk/html5.js"></script>
+  <![endif]-->
   <style type="text/css">
 div.sourceCode { overflow-x: auto; }
 table.sourceCode, tr.sourceCode, td.lineNumbers, td.sourceCode {
@@ -43,7 +46,7 @@ code > span.an { color: #60a0b0; font-weight: bold; font-style: italic; } /* Ann
 code > span.cv { color: #60a0b0; font-weight: bold; font-style: italic; } /* CommentVar */
 code > span.in { color: #60a0b0; font-weight: bold; font-style: italic; } /* Information */
   </style>
-  <link rel="stylesheet" href="../style/tufte.css" type="text/css" />
+  <link rel="stylesheet" href="../style/tufte.css">
 </head>
 <body>
 <p><nav><a href="../">Home</a> § <a href="../">About</a></nav></p>
@@ -83,31 +86,31 @@ SQL in the type system where it belongs
 <table>
 <thead>
 <tr class="header">
-<th align="left">Column</th>
-<th align="left">Can it contain <code>NULL</code>?</th>
-<th align="left">Do we want <code>DEFAULT</code> to be written to it?</th>
+<th style="text-align: left;">Column</th>
+<th style="text-align: left;">Can it contain <code>NULL</code>?</th>
+<th style="text-align: left;">Do we want <code>DEFAULT</code> to be written to it?</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td align="left"><code>id</code></td>
-<td align="left">No</td>
-<td align="left">Yes</td>
+<td style="text-align: left;"><code>id</code></td>
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">Yes</td>
 </tr>
 <tr class="even">
-<td align="left"><code>name</code></td>
-<td align="left">No</td>
-<td align="left">No</td>
+<td style="text-align: left;"><code>name</code></td>
+<td style="text-align: left;">No</td>
+<td style="text-align: left;">No</td>
 </tr>
 <tr class="odd">
-<td align="left"><code>favoriteNumber</code></td>
-<td align="left">Yes</td>
-<td align="left">Yes</td>
+<td style="text-align: left;"><code>favoriteNumber</code></td>
+<td style="text-align: left;">Yes</td>
+<td style="text-align: left;">Yes</td>
 </tr>
 <tr class="even">
-<td align="left"><code>age</code></td>
-<td align="left">Yes</td>
-<td align="left">No</td>
+<td style="text-align: left;"><code>age</code></td>
+<td style="text-align: left;">Yes</td>
+<td style="text-align: left;">No</td>
 </tr>
 </tbody>
 </table>
@@ -398,7 +401,7 @@ Fst &#39;(Int, &quot;hello&quot;) :: *
 <p>Unfortunately GHCi doesn’t complain here that this type-level function is undefined, presumably because we are not applying its type to any term-level expression so there is nothing to type-check yet, but in any case we get a hint that this type won’t get us anywhere by noticing that <code>Bar Bool</code> is not being reduced to another type, such as it did previously in GHCi when <code>Bar Int</code> was reduced to <code>Bool</code> and <code>Bar Char</code> was reduced to <code>Double</code>. In any case, the type-checker will fail to compile a program that tries to assign the type <code>Bar Bool</code> to an expression. It can be useful to keep these things in mind when working with type-level functions like these.</p>
 <p>If we look at type-level functions more generally, we should notice that only few aspects of them are new to us here, as from day one when programming in Haskell we are exposed to type-level functions in the form of type constructors like <code>Maybe :: * -&gt; *</code>, <code>[] :: * -&gt; *</code> or <code>Either :: * -&gt; * -&gt; *</code>. Everything we learned about using type-level functions applies to type constructors too. Of particular interest to us now are the type constructors <code>Tagged :: * -&gt; * -&gt; *</code> and <code>Record :: [*] -&gt; *</code> which we are using in our polymorphic definition of <code>User</code>. Let’s try to decompose our polymorphic <code>User</code> a bit more.</p>
 <p>When we came up with our last definition of <code>User</code>, we said that it was the least polymorphic version of the general shape of all our <code>User</code> variants, somewhat implying that there existed more polymorphic versions of this shape, and indeed they do. Gently, we will start to decompose this even further so as to understand how to build a <code>Record</code> like this one out of the essential parts that describe a row in the <code>user</code> SQL table. Which are those essential parts? They are the ones mattered until now, and not one more. We can be certain of this, because guided by the types, we carefully analyzed each of the Opaleye scenarios we needed to cover, and only made as few changes as necessary in order to satisfy our precise requirements. Namely, for each column in our SQL row we need to know:</p>
-<ol style="list-style-type: decimal">
+<ol type="1">
 <li><p>The name of the column.</p></li>
 <li><p>Whether <code>DEFAULT</code> can be written to the column.</p></li>
 <li><p>Whether the column can contain <code>NULL</code>.</p></li>
