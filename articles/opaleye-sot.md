@@ -1985,7 +1985,8 @@ doing an excellent job keeping _the wrong SQL_ away from us.
 It is worth mentioning that writing `C::C` and `T::T`, instead of the more
 _whitespacey_ and traditional `C :: C` and `T :: T` is just a personal syntactic
 preference of mine so as to reduce any accidental whitespace noise. You may
-choose to do otherwise. Maybe this aspect of things will improve
+choose to do otherwise. It might even be convenient to define a synonym for this,
+something like `tUser = T :: T User`. Maybe this aspect of things will improve
 once the [`TypeApplications`](https://phabricator.haskell.org/D1138) language
 extension lands in GHC.
 
