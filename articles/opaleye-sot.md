@@ -2413,5 +2413,5 @@ By <a href="../">Renzo Carbonara</a>. First published in October 2015.<br/>
 This work is licensed under a <a rel="license"
 href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution
 4.0 International License</a>.<br/>
-Thanks to Franco Victorio for providing some feedback to this article.
+Thanks to Franco Victorio for providing some feedback on this article.
 </p>
