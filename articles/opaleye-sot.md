@@ -2373,8 +2373,8 @@ learned how to help users accomplish their goals with as little friction and as
 much safety as possible, we gave a practical perspective to advanced type
 feature systems, we put lenses in the query language, and by putting `Maybe`
 there as well we may have saved the next billion dollars. And even if you didn't
-like some of the solutions, now you know what is possible and you may try your
-own approach.
+like some of the solutions here, now you know what is possible and you may try
+something else.
 
 We did embrace Opaleye and the generation of well-formed and _not wrong SQL_ as
 our scenario, but it is important to realize that these techniques and
