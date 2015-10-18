@@ -2395,17 +2395,20 @@ invitation for you to contribute to `opaleye-sot`, even if just by asking for
 some feature to exist or some documentation to improve. `opaleye-sot` will be on
 Hackage once it can be considered _production ready_. Meanwhile, I invite you to
 go and explore its [source code](https://github.com/k0001/opaleye-sot), as well
-its [documentation](). In the source code you will find a tutorial in the works
-too, with some additional examples. All of it free and open source as you would
-justifiably expect.
+its
+[documentation](../tmp/opaleye-sot.doc.d37df42be1d9d271df1bb83d88a8a1bada6cf740/index.html).
+In the source code you will find a tutorial in the works too, with some
+additional examples. All of it free and open source as you would justifiably
+expect.
 
 ## Discussion
 
 You can discuss this comment at [reddit]().
 
-<div style="margin-left:1em; padding-left:1em; border-left: solid #111 1px;">
-_By <a href="../">Renzo Carbonara</a>. First published in October 2015.<br/>
+<p style="margin-left:-1em; padding-left:1em; border-left:solid #111 1px; font-style:italic;">
+By <a href="../">Renzo Carbonara</a>. First published in October 2015.<br/>
 This work is licensed under a <a rel="license"
 href="http://creativecommons.org/licenses/by/4.0/">Creative Commons Attribution
-4.0 International License</a>._
-</div>
+4.0 International License</a>.<br/>
+Thanks to Franco Victorio for providing some feedback to this article.
+</p>
