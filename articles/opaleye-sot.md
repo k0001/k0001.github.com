@@ -17,7 +17,12 @@ sense, you are expected to be comfortable with concepts like `Functor`, `Monad`
 you how to use the GHC type system to build resilient software and reason about
 any problem you might want to tackle with it. Nevertheless, even if you don't
 particularly understand the technical details, you should be able to follow the
-reasoning process and appreciate the practical results.
+reasoning process and appreciate the practical results. We will explore various
+type-level programming ideas such as phantom types, type synonyms, type
+families, type classes and their superclasses, constraints, overloading,
+promoted datatypes, type-level strings, kinds, functional dependencies, type
+inference, understanding type signatures, API design, making undesirable
+scenarios unrepresentable and using GHCi for working with types and kinds.
 
 
 ## The problem
@@ -101,23 +106,24 @@ Opaleye, quite wisely, doesn't force itself into any particular data type for
 the Haskell representation of SQL rows, instead it allows us to pick any
 representation we want as long as we can provide a
 [`ProductProfunctor`](https://hackage.haskell.org/package/product-profunctors-0.6.3.1/docs/Data-Profunctor-Product.html#t:ProductProfunctor)
-instance for it. This means, for example, that if we have a row with two fields,
-we can choose to represent that as any product type with two elements: be it
-`(a, b)`, a custom `Foo a b`, or similar. Those `a` and `b`, however, will
-change depending on what we are trying to accomplish. For example, assuming a
-SQL row with a `bool` column and a `text` column, when giving that SQL row a
-concrete Haskell representation we may use the type `Foo Bool String`, but when
-writing said SQL row to the database we will need to use `Foo (Column PGBool)
-(Column PGText)`. For this reason, Opaleye recommends leaving `a` and `b`
-polymorphic, and using type synonyms to fix `a` and `b` to particular types
-depending on the scenario. There is only a limited number of scenarios like
-these two where `a` and `b` will need to change. Personally, I think this is a
-good approach to working with different yet somewhat similar representations,
-but hopefully we all can agree that this can lead to a non-negligible amount of
-boilerplate, in particular when working with rows having many columns, and we
-need to prevent this. Our goal is to reduce the amount of boilerplate we need to
-write regarding these types, hopefully without resorting to the powerful but
-huge, fragile and uncomfortable hammer that `TemplateHaskell` can be.
+adaptor for it, allowing `ProductProfunctor` instances to flow throw that
+data type. This means, for example, that if we have a row with two fields, we can
+choose to represent that as any product type with two elements: be it `(a, b)`,
+a custom `Foo a b`, or similar. Those `a` and `b`, however, will change
+depending on what we are trying to accomplish. For example, assuming a SQL row
+with a `bool` column and a `text` column, when giving that SQL row a concrete
+Haskell representation we may use the type `Foo Bool String`, but when writing
+said SQL row to the database we will need to use `Foo (Column PGBool) (Column
+PGText)`. For this reason, Opaleye recommends leaving `a` and `b` polymorphic,
+and using type synonyms to fix `a` and `b` to particular types depending on the
+scenario. There is only a limited number of scenarios like these two where `a`
+and `b` will need to change. Personally, I think this is a good approach to
+working with different yet somewhat similar representations, but hopefully we
+all can agree that this can lead to a non-negligible amount of boilerplate, in
+particular when working with rows having many columns, and we need to prevent
+this. Our goal is to reduce the amount of boilerplate we need to write regarding
+these types, hopefully without resorting to the powerful but huge, fragile and
+uncomfortable hammer that `TemplateHaskell` can be.
 
 `opaleye-sot` solves this problem by using a combination of
 [`HList`](https://hackage.haskell.org/package/HList) (Oleg Kiselyov, Ralf
@@ -150,10 +156,10 @@ also know statically—that is, at compile time—both the number and types of t
 elements. Moreover, that information is kept in a type-level list promoted using
 `DataKinds`, which means that we can manipulate that list and see it change its
 length and contents at compile time, just like we could do with a traditional
-term-level polymorphic list at runtime. And finally, `HList` can be given an
-instance of `ProductProfunctor` that works for lists of any length, not only
+term-level polymorphic list at runtime. And finally, `HList` can be given a
+`ProductProfunctor` adaptor that works for lists of any length, not only
 making it a suitable datatype for Opaleye, but also preventing us from having to
-define a new `ProductProfunctor` instance for each different Haskell
+define new `ProductProfunctor` adaptors for each different Haskell
 representation we would like to use for mapping SQL rows. For these reasons, we
 will use `HList` as the preferred container for all our SQL row mapping needs,
 which gives us a uniform way to work with different SQL rows.
@@ -1596,9 +1602,9 @@ type HsR t = Tagged t (Cols_HsR (Cols t))
 
 And similarly for the `HsI`, `PgR`, `PgRN` and `PgW` scenarios. Of course, if we
 start putting `Tagged` values in datatypes like this one, expected to play well
-with Opaleye, we have to ensure `ProductProfunctor` instances can exist for
-them. But they can, and they are exported by `opaleye-sot`, so let's not worry
-about it.
+with Opaleye, we have to ensure `ProductProfunctor` adaptors can exist for them.
+But they can, and they are exported by `opaleye-sot`, so let's not worry about
+it.
 
 Fundamentally, there is not much more to this, but from a practical point of
 view there is one last thing to do: Just like we created `WDef`, `WD` and `RN`
@@ -2406,7 +2412,7 @@ expect.
 
 ## Discussion
 
-You can discuss this comment at [reddit](https://www.reddit.com/r/haskell/comments/3pb66q/opaleyes_sugar_on_top_sql_in_the_type_system/).
+You can discuss this article at [reddit](https://www.reddit.com/r/haskell/comments/3pb66q/opaleyes_sugar_on_top_sql_in_the_type_system/).
 
 <p style="margin-left:-1em; padding-left:1em; border-left:solid #111 1px; font-style:italic;">
 By <a href="../">Renzo Carbonara</a>. First published in October 2015.<br/>
