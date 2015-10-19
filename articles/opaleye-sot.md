@@ -2406,7 +2406,7 @@ expect.
 
 ## Discussion
 
-You can discuss this comment at [reddit]().
+You can discuss this comment at [reddit](https://www.reddit.com/r/haskell/comments/3pb66q/opaleyes_sugar_on_top_sql_in_the_type_system/).
 
 <p style="margin-left:-1em; padding-left:1em; border-left:solid #111 1px; font-style:italic;">
 By <a href="../">Renzo Carbonara</a>. First published in October 2015.<br/>
