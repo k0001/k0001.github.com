@@ -1466,9 +1466,9 @@ exists an instance of `Qux x` in scope, meaning that this constraint will be
 propagated upstream until it is satisfied.
 
 Let's now convert our `Cols` to an associated open type family within a type
-class that we will call `Tisch`, which is the German word for “table”—a good
-name because it doesn't clash with Opaleye's `Table`, a type we will use later
-on.
+class that we will call `Tisch`, which is the German word for “table”—the one
+with four legs, a good name because it doesn't clash with Opaleye's `Table`, a
+type we will use later on.
 
 
 ```haskell
